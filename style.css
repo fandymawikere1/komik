@@ -462,3 +462,99 @@ h1, h2, h3, h4, h5, h6, .logo-text {
     border-radius: 4px;
     color: var(--text-primary);
 }
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .navbar {
+        padding: 1rem 2rem;
+    }
+    .container {
+        padding: 1.5rem 2rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .navbar {
+        padding: 1rem;
+        flex-direction: column;
+        gap: 1rem;
+        height: auto;
+    }
+    
+    .nav-links {
+        gap: 1rem;
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .search-container {
+        margin-left: 0 !important;
+        width: 100%;
+    }
+
+    #search-input {
+        width: 100%;
+    }
+
+    .container {
+        padding: 1rem;
+    }
+
+    .carousel-container {
+        height: 300px;
+    }
+
+    .banner-content {
+        padding: 1rem;
+        gap: 1rem;
+    }
+
+    .banner-cover {
+        width: 100px;
+        height: 140px;
+    }
+
+    .banner-title {
+        font-size: 1.5rem;
+    }
+
+    /* Force 3 columns on mobile */
+    .grid-container {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem 0.5rem;
+    }
+
+    .card-content {
+        padding: 0.5rem;
+    }
+
+    .card-title {
+        font-size: 0.8rem;
+        height: 2.4em;
+    }
+
+    .card-chapter {
+        font-size: 0.7rem;
+    }
+    
+    .chapter-badge {
+        padding: 1px 4px;
+    }
+
+    .card-rating, .card-format {
+        font-size: 0.6rem;
+        padding: 2px 4px;
+    }
+}
+
+@media (max-width: 480px) {
+    .logo-text {
+        font-size: 1.2rem;
+    }
+    
+    .grid-container {
+        grid-template-columns: repeat(3, 1fr); /* Still 3 columns */
+        gap: 0.5rem;
+    }
+}
