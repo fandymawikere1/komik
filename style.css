@@ -8,7 +8,7 @@
     --accent-glow: rgba(59, 130, 246, 0.5);
     --gold: #fbbf24;
     --danger: #ef4444;
-    --glass-bg: rgba(30, 41, 59, 0.7);
+    --glass-bg: rgba(30, 41, 59, 0.95);
     --glass-border: rgba(255, 255, 255, 0.1);
 }
 
@@ -55,8 +55,6 @@ h1, h2, h3, h4, h5, h6, .logo-text {
     align-items: center;
     padding: 1rem 4rem;
     background: var(--glass-bg);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--glass-border);
 }
 
@@ -344,7 +342,6 @@ h1, h2, h3, h4, h5, h6, .logo-text {
     height: 50px;
     border-radius: 50%;
     background: var(--glass-bg);
-    backdrop-filter: blur(8px);
     border: 1px solid var(--glass-border);
     color: white;
     font-size: 1.5rem;
@@ -446,8 +443,7 @@ h1, h2, h3, h4, h5, h6, .logo-text {
     position: absolute;
     top: 8px;
     right: 8px;
-    background: rgba(0,0,0,0.6);
-    backdrop-filter: blur(4px);
+    background: rgba(0,0,0,0.8);
     padding: 4px 8px;
     border-radius: 6px;
     font-size: 0.8rem;
@@ -529,9 +525,7 @@ h1, h2, h3, h4, h5, h6, .logo-text {
         padding: 5px 0;
         height: 65px;
         z-index: 1000;
-        background: rgba(15, 23, 42, 0.98);
-        backdrop-filter: blur(15px);
-        -webkit-backdrop-filter: blur(15px);
+        background: rgba(15, 23, 42, 1);
         border-top: 1px solid rgba(255,255,255,0.08);
         border-bottom: none;
         display: flex;
@@ -603,11 +597,49 @@ h1, h2, h3, h4, h5, h6, .logo-text {
     }
 
     .carousel-container {
-        height: 200px;
+        height: 240px;
+    }
+
+    .banner-content {
+        padding: 1rem;
+        gap: 0.8rem;
+        align-items: flex-end;
+    }
+
+    .banner-cover {
+        width: 90px;
+        height: 130px;
     }
 
     .banner-title {
         font-size: 1.1rem;
+        margin-bottom: 0.3rem;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .banner-synopsis {
+        display: none;
+    }
+
+    .banner-meta {
+        font-size: 0.75rem;
+        margin-bottom: 0.5rem;
+        gap: 0.5rem;
+    }
+
+    .read-btn {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+    }
+
+    .badge {
+        font-size: 0.6rem;
+        padding: 2px 6px;
+        margin-bottom: 4px;
     }
 
     .grid-container {
@@ -617,7 +649,8 @@ h1, h2, h3, h4, h5, h6, .logo-text {
 
     .card-title {
         font-size: 0.65rem;
-        height: 2.2em;
+        height: auto;
+        min-height: 2.8em;
     }
 
     .card-chapter {

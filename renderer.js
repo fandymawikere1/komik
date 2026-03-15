@@ -1,8 +1,9 @@
 let currentPage = 1;
 let isLoading = false;
-let currentType = 'latest'; // 'latest', 'search', 'genre', 'bookmark'
+let currentType = 'latest'; // 'latest', 'search', 'genre', 'bookmark', 'format'
 let currentQuery = '';
 let currentGenre = '';
+let currentFormat = '';
 
 document.addEventListener('DOMContentLoaded', () => {
     fetchBanners();
@@ -50,6 +51,8 @@ async function loadMore() {
         url = `https://be.komikcast.cc/series?filter=title=like=%22${encodeURIComponent(currentQuery)}%22,nativeTitle=like=%22${encodeURIComponent(currentQuery)}%22&takeChapter=2&includeMeta=true&sort=latest&sortOrder=desc&take=12&page=${currentPage}`;
     } else if (currentType === 'genre') {
         url = `https://be.komikcast.cc/series?genreIds=${encodeURIComponent(currentGenre)}&takeChapter=2&includeMeta=true&sort=latest&sortOrder=desc&take=12&page=${currentPage}`;
+    } else if (currentType === 'format') {
+        url = `https://be.komikcast.cc/series?format=${encodeURIComponent(currentFormat)}&takeChapter=2&includeMeta=true&sort=latest&sortOrder=desc&take=12&page=${currentPage}`;
     }
 
     try {
@@ -144,6 +147,31 @@ async function handleGenreSearch(genreName) {
     }
 }
 
+async function handleFormatSearch(formatName) {
+    currentType = 'format';
+    currentFormat = formatName.toLowerCase();
+    currentPage = 1;
+    
+    document.querySelector('.banner-section').style.display = 'none';
+    const grid = document.getElementById('latest-grid');
+    const gridTitle = document.querySelector('.latest-section .section-title');
+    gridTitle.textContent = `Type: ${formatName}`;
+    grid.innerHTML = '<div class="loading-state">Filtering by format...</div>';
+    
+    const url = `https://be.komikcast.cc/series?format=${encodeURIComponent(currentFormat)}&takeChapter=2&includeMeta=true&sort=latest&sortOrder=desc&take=12&page=1`;
+    try {
+        const response = await fetch(url, API_OPTIONS);
+        const json = await response.json();
+        if (json.status === 200 && json.data) {
+            renderLatestReleases(json.data, false);
+        } else {
+            grid.innerHTML = '<div class="loading-state">No series found for this format.</div>';
+        }
+    } catch (e) {
+        grid.innerHTML = '<div class="loading-state">Failed to fetch format results.</div>';
+    }
+}
+
 // --- Banner Logic ---
 async function fetchBanners() {
     try {
@@ -178,11 +206,13 @@ function setupNavbar() {
             if (id === 'nav-home') {
                 window.location.reload();
             } else if (id === 'nav-manga') {
-                handleGenreSearch('Manga');
+                handleFormatSearch('Manga');
             } else if (id === 'nav-manhwa') {
-                handleGenreSearch('Manhwa');
+                handleFormatSearch('Manhwa');
             } else if (id === 'nav-manhua') {
-                handleGenreSearch('Manhua');
+                handleFormatSearch('Manhua');
+            } else if (id === 'nav-webtoon') {
+                handleFormatSearch('Webtoon');
             } else if (id === 'nav-bookmark') {
                 viewBookmarks();
             }
