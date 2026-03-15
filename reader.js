@@ -2,9 +2,17 @@ document.addEventListener('DOMContentLoaded', () => {
     initReader();
 });
 
-let currentSlug = '';
 const PROXY_URL = 'https://abahcode.com/proxy.php?url=';
 const wrapProxy = (url) => url ? `${PROXY_URL}${encodeURIComponent(url)}` : url;
+
+// Mobile API options (CORS)
+const API_OPTIONS = {
+    mode: 'cors',
+    headers: {
+        'Accept': 'application/json'
+    }
+};
+
 let currentTitle = '';
 let currentFormat = '';
 let allChapters = [];
@@ -86,7 +94,7 @@ function updateModeUI() {
 
 async function fetchChapterList() {
     try {
-        const res = await fetch(`https://be.komikcast.cc/series/${currentSlug}/chapters?take=1000`);
+        const res = await fetch(`https://be.komikcast.cc/series/${currentSlug}/chapters?take=1000`, API_OPTIONS);
         const json = await res.json();
         if (json.status === 200 && json.data) {
             allChapters = json.data;
@@ -152,7 +160,7 @@ async function loadChapter(index) {
     document.getElementById('bottom-controls').style.display = 'none';
     
     try {
-        const res = await fetch(`https://be.komikcast.cc/series/${currentSlug}/chapters/${currentChapterIndex}`);
+        const res = await fetch(`https://be.komikcast.cc/series/${currentSlug}/chapters/${currentChapterIndex}`, API_OPTIONS);
         const json = await res.json();
         
         if (json.status === 200 && json.data?.data?.images) {

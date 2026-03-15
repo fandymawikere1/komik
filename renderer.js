@@ -29,6 +29,14 @@ const LATEST_API = 'https://be.komikcast.cc/series?preset=rilisan_terbaru&take=2
 const PROXY_URL = 'https://abahcode.com/proxy.php?url=';
 const wrapProxy = (url) => url ? `${PROXY_URL}${encodeURIComponent(url)}` : url;
 
+// Mobile API options (CORS)
+const API_OPTIONS = {
+    mode: 'cors',
+    headers: {
+        'Accept': 'application/json'
+    }
+};
+
 // Format helpers
 const formatNumber = (num) => {
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
@@ -47,16 +55,10 @@ function setupNavbar() {
             document.querySelectorAll('.nav-links a').forEach(l => l.classList.remove('active'));
             e.target.classList.add('active');
             
-            const gridTitle = document.querySelector('.latest-section .section-title');
-            
             if (id === 'nav-home') {
-                gridTitle.textContent = 'Latest Releases';
-                document.querySelector('.banner-section').style.display = 'block';
-                renderLatestReleases(allLatest);
+                window.location.reload();
             } else if (id === 'nav-manga') {
-                gridTitle.textContent = 'Latest Manga';
-                document.querySelector('.banner-section').style.display = 'none';
-                renderLatestReleases(allLatest.filter(item => item.data.format.toLowerCase() === 'manga'));
+                handleGenreSearch('Manga');
             } else if (id === 'nav-manhwa') {
                 gridTitle.textContent = 'Latest Manhwa';
                 document.querySelector('.banner-section').style.display = 'none';
@@ -94,9 +96,9 @@ async function handleSearch(query) {
         return;
     }
     
-    const url = `https://be.komikcast.cc/series?filter=title=like=%22${encodeURIComponent(query)}%22,nativeTitle=like=%22${encodeURIComponent(query)}%22&takeChapter=2&includeMeta=true&sort=latest&sortOrder=desc&take=12&page=1`;
+    const searchUrl = `https://be.komikcast.cc/series?filter=title=like=%22${encodeURIComponent(query)}%22,nativeTitle=like=%22${encodeURIComponent(query)}%22&takeChapter=2&includeMeta=true&sort=latest&sortOrder=desc&take=12&page=1`;
     try {
-        const response = await fetch(url);
+        const response = await fetch(searchUrl, API_OPTIONS);
         const json = await response.json();
         if (json.status === 200 && json.data) {
             renderLatestReleases(json.data);
@@ -119,7 +121,7 @@ async function handleGenreSearch(genreName) {
     // Using the exact URL format provided by user for genre filtering
     const url = `https://be.komikcast.cc/series?genreIds=${encodeURIComponent(genreName)}&takeChapter=2&includeMeta=true&sort=latest&sortOrder=desc&take=12&page=1`;
     try {
-        const response = await fetch(url);
+        const response = await fetch(url, API_OPTIONS);
         const json = await response.json();
         if (json.status === 200 && json.data) {
             renderLatestReleases(json.data);
@@ -134,7 +136,7 @@ async function handleGenreSearch(genreName) {
 // --- Banner Logic ---
 async function fetchBanners() {
     try {
-        const response = await fetch(BANNER_API);
+        const response = await fetch(BANNER_API, API_OPTIONS);
         const json = await response.json();
         if (json.status === 200 && json.data) {
             allBanners = json.data;

@@ -38,6 +38,15 @@ function timeAgo(dateString) {
 let currentSlug = '';
 const PROXY_URL = 'https://abahcode.com/proxy.php?url=';
 const wrapProxy = (url) => url ? `${PROXY_URL}${encodeURIComponent(url)}` : url;
+
+// Mobile API options (CORS)
+const API_OPTIONS = {
+    mode: 'cors',
+    headers: {
+        'Accept': 'application/json'
+    }
+};
+
 let currentSeries = null;
 let allChapters = [];
 
@@ -59,30 +68,12 @@ async function fetchDetails() {
     const loading = document.getElementById('loading');
     
     try {
-        // Use direct slug endpoint which works correctly
-        const response = await fetch(`https://be.komikcast.cc/series/${currentSlug}`);
+        const response = await fetch(`https://be.komikcast.cc/series/${currentSlug}`, API_OPTIONS);
         const json = await response.json();
         
         if (json.status === 200 && json.data) {
-            // According to confirmed structure: json.data is the wrapper, json.data.data is the content
             currentSeries = json.data.data;
             renderDetails(currentSeries);
-
-            // Fetch chapters using the slug
-            try {
-                const chRes = await fetch(`https://be.komikcast.cc/series/${currentSlug}/chapters?take=1000`);
-                const chJson = await chRes.json();
-                if (chJson.status === 200 && chJson.data) {
-                    allChapters = chJson.data;
-                    renderChapters(allChapters);
-                    updateReadingStatus();
-                } else {
-                    renderChapters([]);
-                }
-            } catch (ce) {
-                console.error('Chapter fetch error:', ce);
-                renderChapters([]);
-            }
             
             loading.style.display = 'none';
             content.style.display = 'block';
@@ -137,6 +128,47 @@ function renderDetails(data) {
     }
     
     document.getElementById('detail-synopsis').textContent = data.synopsis || 'No synopsis available.';
+    
+    // Bookmark Button
+    const btnContainer = document.querySelector('.detail-info');
+    let bookmarkBtn = document.getElementById('bookmark-btn');
+    if (!bookmarkBtn) {
+        bookmarkBtn = document.createElement('button');
+        bookmarkBtn.id = 'bookmark-btn';
+        bookmarkBtn.className = 'bookmark-btn';
+        btnContainer.insertBefore(bookmarkBtn, document.getElementById('start-reading-btn'));
+    }
+    
+    updateBookmarkUI();
+    bookmarkBtn.onclick = toggleBookmark;
+}
+
+function updateBookmarkUI() {
+    const btn = document.getElementById('bookmark-btn');
+    const bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '{}');
+    const isBookmarked = !!bookmarks[currentSlug];
+    
+    btn.innerHTML = isBookmarked ? 
+        `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2v16z"/></svg> Bookmarked` :
+        `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2v16z"/></svg> Bookmark`;
+    
+    btn.classList.toggle('active', isBookmarked);
+}
+
+function toggleBookmark() {
+    const bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '{}');
+    if (bookmarks[currentSlug]) {
+        delete bookmarks[currentSlug];
+    } else {
+        bookmarks[currentSlug] = {
+            slug: currentSlug,
+            title: currentSeries.title,
+            cover: currentSeries.coverImage,
+            format: currentSeries.format
+        };
+    }
+    localStorage.setItem('bookmarks', JSON.stringify(bookmarks));
+    updateBookmarkUI();
 }
 
 function renderChapters(chapters) {
