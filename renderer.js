@@ -1,5 +1,8 @@
-let allBanners = [];
-let allLatest = [];
+let currentPage = 1;
+let isLoading = false;
+let currentType = 'latest'; // 'latest', 'search', 'genre', 'bookmark'
+let currentQuery = '';
+let currentGenre = '';
 
 document.addEventListener('DOMContentLoaded', () => {
     fetchBanners();
@@ -10,8 +13,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchParam = urlParams.get('search');
     
     if (genreParam) {
+        currentGenre = genreParam;
         handleGenreSearch(genreParam);
     } else if (searchParam) {
+        currentQuery = searchParam;
         handleSearch(searchParam);
         const searchInput = document.getElementById('search-input');
         if (searchInput) searchInput.value = searchParam;
@@ -20,7 +25,47 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     setupNavbar();
+    setupInfiniteScroll();
 });
+
+function setupInfiniteScroll() {
+    window.addEventListener('scroll', () => {
+        if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 800) {
+            loadMore();
+        }
+    });
+}
+
+async function loadMore() {
+    if (isLoading || currentType === 'bookmark') return;
+    isLoading = true;
+    currentPage++;
+    
+    console.log(`Loading more... Page ${currentPage} for type ${currentType}`);
+    
+    let url = '';
+    if (currentType === 'latest') {
+        url = `https://be.komikcast.cc/series?preset=rilisan_terbaru&take=20&takeChapter=3&page=${currentPage}`;
+    } else if (currentType === 'search') {
+        url = `https://be.komikcast.cc/series?filter=title=like=%22${encodeURIComponent(currentQuery)}%22,nativeTitle=like=%22${encodeURIComponent(currentQuery)}%22&takeChapter=2&includeMeta=true&sort=latest&sortOrder=desc&take=12&page=${currentPage}`;
+    } else if (currentType === 'genre') {
+        url = `https://be.komikcast.cc/series?genreIds=${encodeURIComponent(currentGenre)}&takeChapter=2&includeMeta=true&sort=latest&sortOrder=desc&take=12&page=${currentPage}`;
+    }
+
+    try {
+        const response = await fetch(wrapProxy(url), API_OPTIONS);
+        const json = await response.json();
+        if (json.status === 200 && json.data && json.data.length > 0) {
+            renderLatestReleases(json.data, true); // true means append
+        } else {
+            console.log("No more results.");
+        }
+    } catch (e) {
+        console.error('Error loading more:', e);
+    } finally {
+        isLoading = false;
+    }
+}
 
 const BANNER_API = 'https://be.komikcast.cc/series?preset=banner&includeMeta=true';
 const LATEST_API = 'https://be.komikcast.cc/series?preset=rilisan_terbaru&take=20&takeChapter=3&page=1';
@@ -35,12 +80,14 @@ const API_OPTIONS = {
 };
 
 async function fetchLatestReleases() {
+    currentType = 'latest';
+    currentPage = 1;
     try {
         const response = await fetch(wrapProxy(LATEST_API), API_OPTIONS);
         const json = await response.json();
         if (json.status === 200 && json.data) {
             allLatest = json.data;
-            renderLatestReleases(allLatest);
+            renderLatestReleases(allLatest, false);
         }
     } catch (e) {
         console.error('Error fetching latest:', e);
@@ -48,6 +95,10 @@ async function fetchLatestReleases() {
 }
 
 async function handleSearch(query) {
+    currentType = 'search';
+    currentQuery = query;
+    currentPage = 1;
+    
     const grid = document.getElementById('latest-grid');
     const gridTitle = document.querySelector('.latest-section .section-title');
     gridTitle.textContent = `Search: ${query}`;
@@ -58,7 +109,7 @@ async function handleSearch(query) {
         const response = await fetch(wrapProxy(searchUrl), API_OPTIONS);
         const json = await response.json();
         if (json.status === 200 && json.data) {
-            renderLatestReleases(json.data);
+            renderLatestReleases(json.data, false);
         } else {
             grid.innerHTML = '<div class="loading-state">No results found.</div>';
         }
@@ -68,6 +119,10 @@ async function handleSearch(query) {
 }
 
 async function handleGenreSearch(genreName) {
+    currentType = 'genre';
+    currentGenre = genreName;
+    currentPage = 1;
+    
     document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
     document.querySelector('.banner-section').style.display = 'none';
     const grid = document.getElementById('latest-grid');
@@ -80,7 +135,7 @@ async function handleGenreSearch(genreName) {
         const response = await fetch(wrapProxy(url), API_OPTIONS);
         const json = await response.json();
         if (json.status === 200 && json.data) {
-            renderLatestReleases(json.data);
+            renderLatestReleases(json.data, false);
         } else {
             grid.innerHTML = '<div class="loading-state">No series found for this genre.</div>';
         }
@@ -344,11 +399,14 @@ function resetAutoSlide() {
 // --- Latest ---
 // Removed duplicate fetchLatestReleases to fix Proxy issue.
 
-function renderLatestReleases(list) {
+function renderLatestReleases(list, append = false) {
     const grid = document.getElementById('latest-grid');
-    grid.innerHTML = '';
-    if (!list.length) {
-        grid.innerHTML = '<div class="loading-state">No releases.</div>';
+    if (!append) {
+        grid.innerHTML = '';
+    }
+    
+    if (!list || !list.length) {
+        if (!append) grid.innerHTML = '<div class="loading-state">No releases found.</div>';
         return;
     }
 
