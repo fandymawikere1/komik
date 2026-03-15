@@ -57,6 +57,21 @@ async function initDetails() {
     }
     
     currentSlug = slug;
+    
+    // Setup chapter search
+    const chSearch = document.getElementById('ch-search');
+    if (chSearch) {
+        chSearch.addEventListener('input', (e) => {
+            const val = e.target.value.trim().toLowerCase();
+            if (!val) {
+                renderChapters(allChapters);
+                return;
+            }
+            const filtered = allChapters.filter(ch => ch.data.index.toString().toLowerCase().includes(val));
+            renderChapters(filtered);
+        });
+    }
+
     await fetchDetails();
 }
 
@@ -209,6 +224,11 @@ function renderChapters(chapters) {
         // Compare as numbers
         const isLastRead = lastRead && parseFloat(lastRead) === parseFloat(idx);
         
+        let viewsExtra = '';
+        if (ch.views && ch.views.total) {
+            viewsExtra = `<span class="ch-views"><i class="fa-solid fa-eye" style="font-size: 0.65rem;"></i> ${formatNumber(ch.views.total)}</span>`;
+        }
+
         const item = document.createElement('div');
         item.className = 'chapter-item' + (isLastRead ? ' last-read' : '');
         
@@ -216,6 +236,7 @@ function renderChapters(chapters) {
             <div class="ch-left">
                 <span class="ch-name">Chapter ${idx}</span>
                 <span class="ch-date">${timeAgo(ch.createdAt)}</span>
+                ${viewsExtra}
             </div>
             ${isLastRead ? '<span class="read-tag">Last Read</span>' : ''}
         `;

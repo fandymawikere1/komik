@@ -184,6 +184,31 @@
     color: #94a3b8;
 }
 
+.ch-views {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.ch-search-input {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    outline: none;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    width: 200px;
+}
+
+.ch-search-input:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 10px var(--accent-glow);
+}
+
 .genre-tag.clickable {
     cursor: pointer;
     transition: all 0.2s ease;

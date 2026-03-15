@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manga Details - Komikcast Reader</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="details.css">
 </head>
@@ -45,7 +46,10 @@
             </div>
 
             <div class="chapters-section">
-                <h2>Chapters</h2>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 10px;">
+                    <h2 style="margin: 0;">Chapters</h2>
+                    <input type="text" id="ch-search" class="ch-search-input" placeholder="Search Chapter...">
+                </div>
                 <div class="chapter-list" id="chapter-list">
                     <!-- Chapters injected via JS -->
                 </div>
