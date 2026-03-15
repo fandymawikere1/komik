@@ -167,12 +167,13 @@ const formatNumber = (num) => {
 function setupNavbar() {
     document.querySelectorAll('.nav-links a').forEach(link => {
         link.addEventListener('click', (e) => {
-            const id = e.target.id;
+            const target = e.currentTarget;
+            const id = target.id;
             if (!id) return;
             
             e.preventDefault();
             document.querySelectorAll('.nav-links a').forEach(l => l.classList.remove('active'));
-            e.target.classList.add('active');
+            target.classList.add('active');
             
             if (id === 'nav-home') {
                 window.location.reload();
@@ -180,6 +181,8 @@ function setupNavbar() {
                 handleGenreSearch('Manga');
             } else if (id === 'nav-manhwa') {
                 handleGenreSearch('Manhwa');
+            } else if (id === 'nav-manhua') {
+                handleGenreSearch('Manhua');
             } else if (id === 'nav-bookmark') {
                 viewBookmarks();
             }
@@ -243,7 +246,7 @@ async function handleSearch(query) {
     
     const searchUrl = `https://be.komikcast.cc/series?filter=title=like=%22${encodeURIComponent(query)}%22,nativeTitle=like=%22${encodeURIComponent(query)}%22&takeChapter=2&includeMeta=true&sort=latest&sortOrder=desc&take=12&page=1`;
     try {
-        const response = await fetch(searchUrl, API_OPTIONS);
+        const response = await fetch(wrapProxy(searchUrl), API_OPTIONS);
         const json = await response.json();
         if (json.status === 200 && json.data) {
             renderLatestReleases(json.data);

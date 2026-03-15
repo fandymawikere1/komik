@@ -45,10 +45,22 @@ async function initReader() {
     });
 
     // Auto-next chapter on scroll (Webtoon mode)
+    let lastScrollTop = 0;
+    const navbar = document.querySelector('.reader-navbar');
+    
     window.addEventListener('scroll', () => {
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        
+        // Hide/Show navbar logic
+        if (scrollTop > lastScrollTop && scrollTop > 50) {
+            navbar.classList.add('navbar-hidden');
+        } else {
+            navbar.classList.remove('navbar-hidden');
+        }
+        lastScrollTop = scrollTop;
+
         if (!isPagingMode && currentChapterImages.length > 0) {
             const scrollHeight = document.documentElement.scrollHeight;
-            const scrollTop = document.documentElement.scrollTop;
             const clientHeight = document.documentElement.clientHeight;
             
             // If scrolled to bottom (within 50px buffer)
@@ -62,6 +74,21 @@ async function initReader() {
                     }, 500);
                 }
             }
+        }
+    });
+
+    // Toggle navbar on click
+    document.getElementById('image-container').addEventListener('click', (e) => {
+        // Only toggle if not clicking for navigation in paging mode
+        if (isPagingMode) {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            // If clicking middle 40% of screen, toggle navbar
+            if (x > rect.width * 0.3 && x < rect.width * 0.7) {
+                navbar.classList.toggle('navbar-hidden');
+            }
+        } else {
+            navbar.classList.toggle('navbar-hidden');
         }
     });
     
@@ -188,6 +215,7 @@ async function renderImages(images) {
         if (isPagingMode) {
             img.classList.toggle('active', i === currentPageIndex);
             img.onclick = (e) => {
+                e.stopPropagation(); // Prevent bubbling to container toggle
                 const rect = img.getBoundingClientRect();
                 const x = e.clientX - rect.left;
                 if (x > rect.width / 2) navigatePage(1);
