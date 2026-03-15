@@ -21,8 +21,10 @@
   },
   "dependencies": {
     "@capacitor/android": "^8.2.0",
+    "@capacitor/app": "^8.0.1",
     "@capacitor/cli": "^8.2.0",
     "@capacitor/core": "^8.2.0",
+    "@capacitor/status-bar": "^8.0.1",
     "astral-regex": "^2.0.0",
     "slice-ansi": "^8.0.0",
     "string-width": "^8.2.0"
