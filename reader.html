@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Komikcast Reader</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="reader.css">
+</head>
+<body>
+    <nav class="reader-navbar">
+        <button id="back-btn" class="nav-btn">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            Back
+        </button>
+        <div class="reader-title-container">
+            <h1 id="series-title">Loading...</h1>
+        </div>
+        <div class="reader-tools">
+            <span id="page-info" class="page-info" style="display: none;">Page 1 / 1</span>
+            <button id="mode-toggle" class="nav-btn mode-btn">
+                <span id="mode-text">Webtoon</span>
+            </button>
+        </div>
+        <div class="chapter-controls">
+            <button id="prev-chapter" class="nav-btn icon-btn" disabled>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            </button>
+            <select id="chapter-select" class="custom-select">
+                <option value="">Loading chapters...</option>
+            </select>
+            <button id="next-chapter" class="nav-btn icon-btn" disabled>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </button>
+        </div>
+    </nav>
+
+    <main class="reader-main">
+        <div id="image-container" class="image-container">
+            <div class="reader-loading-state">Initializing reader...</div>
+        </div>
+        
+        <div class="bottom-controls" id="bottom-controls" style="display: none;">
+            <button id="bottom-prev" class="nav-btn primary">Previous Chapter</button>
+            <button id="bottom-next" class="nav-btn primary">Next Chapter</button>
+        </div>
+    </main>
+
+    <script src="reader.js"></script>
+</body>
+</html>

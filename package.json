@@ -1,0 +1,38 @@
+{
+  "name": "komikcast-reader",
+  "version": "1.0.0",
+  "description": "Premium Manga Reader for Windows and Android",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win",
+    "android:init": "npx -y cap init \"Komikcast Reader\" \"com.abahcode.komikcast\" --web-dir \".\"",
+    "android:add": "npx cap add android",
+    "android:open": "npx cap open android",
+    "android:sync": "npx cap sync android"
+  },
+  "keywords": [],
+  "author": "abahcode",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "electron": "^41.0.2",
+    "electron-builder": "^26.8.1"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.2.0",
+    "@capacitor/cli": "^8.2.0",
+    "@capacitor/core": "^8.2.0",
+    "astral-regex": "^2.0.0",
+    "slice-ansi": "^8.0.0",
+    "string-width": "^8.2.0"
+  },
+  "build": {
+    "appId": "com.abahcode.komikcast",
+    "productName": "Komikcast Reader",
+    "win": {
+      "target": "portable",
+      "icon": "icon.ico"
+    }
+  }
+}

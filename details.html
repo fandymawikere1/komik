@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manga Details - Komikcast Reader</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="details.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo" style="cursor: pointer;" onclick="window.location.href='index.html'">
+            <span class="logo-text">KOMIKCAST<span class="logo-accent">.APP</span></span>
+        </div>
+        <div class="nav-links">
+            <a href="index.html">Back to Home</a>
+        </div>
+    </nav>
+
+    <main class="container details-container">
+        <div id="loading" class="loading-state">Loading details...</div>
+        
+        <div id="details-content" style="display: none;">
+            <div class="details-header">
+                <img id="detail-cover" class="detail-cover" src="" alt="Cover">
+                <div class="detail-info">
+                    <h1 id="detail-title" class="detail-title"></h1>
+                    <h3 id="detail-native" class="detail-native"></h3>
+                    
+                    <div class="detail-meta">
+                        <span class="meta-badge format" id="detail-format"></span>
+                        <span class="meta-badge rating" id="detail-rating">⭐</span>
+                        <span class="meta-badge status" id="detail-status"></span>
+                    </div>
+                    
+                    <div class="detail-genres" id="detail-genres"></div>
+                    
+                    <p class="detail-synopsis" id="detail-synopsis"></p>
+                    
+                    <button class="read-btn" id="start-reading-btn">Start Reading Chapter 1</button>
+                </div>
+            </div>
+
+            <div class="chapters-section">
+                <h2>Chapters</h2>
+                <div class="chapter-list" id="chapter-list">
+                    <!-- Chapters injected via JS -->
+                </div>
+            </div>
+        </div>
+    </main>
+    <script src="details.js"></script>
+</body>
+</html>

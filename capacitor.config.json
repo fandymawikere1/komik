@@ -1,0 +1,6 @@
+{
+	"appId": "com.abahcode.komikcast",
+	"appName": "Komikcast Reader",
+	"webDir": ".",
+	"bundledWebRuntime": false
+}

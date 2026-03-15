@@ -1,0 +1,307 @@
+let allBanners = [];
+let allLatest = [];
+
+document.addEventListener('DOMContentLoaded', () => {
+    fetchBanners();
+    
+    // Check for URL parameters (genre or search redirection)
+    const urlParams = new URLSearchParams(window.location.search);
+    const genreParam = urlParams.get('genre');
+    const searchParam = urlParams.get('search');
+    
+    if (genreParam) {
+        handleGenreSearch(genreParam);
+    } else if (searchParam) {
+        handleSearch(searchParam);
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) searchInput.value = searchParam;
+    } else {
+        fetchLatestReleases();
+    }
+    
+    setupNavbar();
+});
+
+const BANNER_API = 'https://be.komikcast.cc/series?preset=banner&includeMeta=true';
+const LATEST_API = 'https://be.komikcast.cc/series?preset=rilisan_terbaru&take=20&takeChapter=3&page=1';
+
+// Proxy Helper
+const PROXY_URL = 'https://abahcode.com/proxy.php?url=';
+const wrapProxy = (url) => url ? `${PROXY_URL}${encodeURIComponent(url)}` : url;
+
+// Format helpers
+const formatNumber = (num) => {
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+    return num;
+};
+
+// --- Navbar Logic ---
+function setupNavbar() {
+    document.querySelectorAll('.nav-links a').forEach(link => {
+        link.addEventListener('click', (e) => {
+            const id = e.target.id;
+            if (!id) return;
+            
+            e.preventDefault();
+            document.querySelectorAll('.nav-links a').forEach(l => l.classList.remove('active'));
+            e.target.classList.add('active');
+            
+            const gridTitle = document.querySelector('.latest-section .section-title');
+            
+            if (id === 'nav-home') {
+                gridTitle.textContent = 'Latest Releases';
+                document.querySelector('.banner-section').style.display = 'block';
+                renderLatestReleases(allLatest);
+            } else if (id === 'nav-manga') {
+                gridTitle.textContent = 'Latest Manga';
+                document.querySelector('.banner-section').style.display = 'none';
+                renderLatestReleases(allLatest.filter(item => item.data.format.toLowerCase() === 'manga'));
+            } else if (id === 'nav-manhwa') {
+                gridTitle.textContent = 'Latest Manhwa';
+                document.querySelector('.banner-section').style.display = 'none';
+                renderLatestReleases(allLatest.filter(item => item.data.format.toLowerCase() === 'manhwa'));
+            } else if (id === 'nav-bookmark') {
+                gridTitle.textContent = 'Bookmarks';
+                document.querySelector('.banner-section').style.display = 'none';
+                document.getElementById('latest-grid').innerHTML = '<div class="loading-state" style="grid-column: 1 / -1;">Bookmark feature under construction!</div>';
+            }
+        });
+    });
+    
+    // Search Functionality
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const query = e.target.value.trim();
+                handleSearch(query);
+            }
+        });
+    }
+}
+
+async function handleSearch(query) {
+    document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+    document.querySelector('.banner-section').style.display = 'none';
+    const grid = document.getElementById('latest-grid');
+    grid.innerHTML = '<div class="loading-state">Searching...</div>';
+    
+    if (!query) {
+        document.querySelector('.banner-section').style.display = 'block';
+        document.getElementById('nav-home').classList.add('active');
+        fetchLatestReleases();
+        return;
+    }
+    
+    const url = `https://be.komikcast.cc/series?filter=title=like=%22${encodeURIComponent(query)}%22,nativeTitle=like=%22${encodeURIComponent(query)}%22&takeChapter=2&includeMeta=true&sort=latest&sortOrder=desc&take=12&page=1`;
+    try {
+        const response = await fetch(url);
+        const json = await response.json();
+        if (json.status === 200 && json.data) {
+            renderLatestReleases(json.data);
+        } else {
+            grid.innerHTML = '<div class="loading-state">No results found.</div>';
+        }
+    } catch (e) {
+        grid.innerHTML = '<div class="loading-state">Failed to fetch search results.</div>';
+    }
+}
+
+async function handleGenreSearch(genreName) {
+    document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+    document.querySelector('.banner-section').style.display = 'none';
+    const grid = document.getElementById('latest-grid');
+    const gridTitle = document.querySelector('.latest-section .section-title');
+    gridTitle.textContent = `Genre: ${genreName}`;
+    grid.innerHTML = '<div class="loading-state">Filtering by genre...</div>';
+    
+    // Using the exact URL format provided by user for genre filtering
+    const url = `https://be.komikcast.cc/series?genreIds=${encodeURIComponent(genreName)}&takeChapter=2&includeMeta=true&sort=latest&sortOrder=desc&take=12&page=1`;
+    try {
+        const response = await fetch(url);
+        const json = await response.json();
+        if (json.status === 200 && json.data) {
+            renderLatestReleases(json.data);
+        } else {
+            grid.innerHTML = '<div class="loading-state">No series found for this genre.</div>';
+        }
+    } catch (e) {
+        grid.innerHTML = '<div class="loading-state">Failed to fetch genre results.</div>';
+    }
+}
+
+// --- Banner Logic ---
+async function fetchBanners() {
+    try {
+        const response = await fetch(BANNER_API);
+        const json = await response.json();
+        if (json.status === 200 && json.data) {
+            allBanners = json.data;
+            renderBanners(allBanners);
+        } else {
+            showError('banner-track', 'Failed to load trending series.');
+        }
+    } catch (error) {
+        showError('banner-track', 'Network error.');
+    }
+}
+
+function renderBanners(seriesList) {
+    const track = document.getElementById('banner-track');
+    const indicators = document.getElementById('banner-indicators');
+    if (!seriesList.length) {
+        track.innerHTML = '<div class="loading-state">No trending series found.</div>';
+        return;
+    }
+
+    track.innerHTML = '';
+    indicators.innerHTML = '';
+    
+    seriesList.sort((a, b) => (a.data.bannerIndex || 999) - (b.data.bannerIndex || 999));
+
+    seriesList.forEach((item, index) => {
+        const data = item.data;
+        const slide = document.createElement('div');
+        slide.className = 'banner-item';
+        slide.style.cursor = 'pointer';
+        slide.onclick = () => {
+            window.location.href = `details.html?slug=${encodeURIComponent(data.slug)}`;
+        };
+        
+        slide.innerHTML = `
+            <img src="${wrapProxy(data.backgroundImage || data.coverImage)}" alt="BG" class="banner-bg">
+            <div class="banner-overlay"></div>
+            <div class="banner-content">
+                <img src="${wrapProxy(data.coverImage)}" alt="Cover" class="banner-cover">
+                <div class="banner-info">
+                    ${data.isHot ? '<span class="badge hot">HOT</span>' : ''}
+                    <span class="badge type">${data.format}</span>
+                    <h2 class="banner-title">${data.title}</h2>
+                    <div class="banner-meta">
+                        <span class="meta-item rating-star">★ ${data.rating || '-'}</span>
+                        <span class="meta-item">|</span>
+                        <span class="meta-item">${data.totalChapters ? data.totalChapters + ' Chapters' : 'Ongoing'}</span>
+                    </div>
+                    <p class="banner-synopsis">${data.synopsis || 'No synopsis.'}</p>
+                    <button class="read-btn" onclick="event.stopPropagation(); window.location.href='reader.html?slug=${encodeURIComponent(data.slug)}&title=${encodeURIComponent(data.title)}'">Read Now</button>
+                </div>
+            </div>
+        `;
+        track.appendChild(slide);
+
+        const indicator = document.createElement('div');
+        indicator.className = `indicator ${index === 0 ? 'active' : ''}`;
+        indicator.onclick = (e) => { e.stopPropagation(); goToSlide(index); };
+        indicators.appendChild(indicator);
+    });
+
+    setupCarousel(seriesList.length);
+}
+
+// --- Carousel ---
+let currentSlide = 0;
+let totalSlides = 0;
+let autoSlideInterval;
+
+function setupCarousel(total) {
+    totalSlides = total;
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    
+    // Clear old listeners by cloning
+    const newPrev = prevBtn.cloneNode(true);
+    const newNext = nextBtn.cloneNode(true);
+    prevBtn.parentNode.replaceChild(newPrev, prevBtn);
+    nextBtn.parentNode.replaceChild(newNext, nextBtn);
+
+    newPrev.onclick = () => { currentSlide = (currentSlide - 1 + totalSlides) % totalSlides; updateCarousel(); resetAutoSlide(); };
+    newNext.onclick = () => { nextSlide(); resetAutoSlide(); };
+
+    startAutoSlide();
+}
+
+function goToSlide(index) {
+    currentSlide = index;
+    updateCarousel();
+    resetAutoSlide();
+}
+
+function nextSlide() {
+    if (totalSlides === 0) return;
+    currentSlide = (currentSlide + 1) % totalSlides;
+    updateCarousel();
+}
+
+function updateCarousel() {
+    const track = document.getElementById('banner-track');
+    const indicators = document.querySelectorAll('.indicator');
+    if (track) track.style.transform = `translateX(-${currentSlide * 100}%)`;
+    indicators.forEach((ind, i) => ind.classList.toggle('active', i === currentSlide));
+}
+
+function startAutoSlide() {
+    clearInterval(autoSlideInterval);
+    autoSlideInterval = setInterval(nextSlide, 5000);
+}
+
+function resetAutoSlide() {
+    startAutoSlide();
+}
+
+// --- Latest ---
+async function fetchLatestReleases() {
+    try {
+        const response = await fetch(LATEST_API);
+        const json = await response.json();
+        if (json.status === 200 && json.data) {
+            allLatest = json.data;
+            renderLatestReleases(allLatest);
+        }
+    } catch (e) { console.error(e); }
+}
+
+function renderLatestReleases(list) {
+    const grid = document.getElementById('latest-grid');
+    grid.innerHTML = '';
+    if (!list.length) {
+        grid.innerHTML = '<div class="loading-state">No releases.</div>';
+        return;
+    }
+
+    list.forEach(item => {
+        const d = item.data;
+        const card = document.createElement('div');
+        card.className = 'comic-card';
+        card.onclick = () => {
+            window.location.href = `details.html?slug=${encodeURIComponent(d.slug)}`;
+        };
+        
+        let latestCh = 'Ch. ?';
+        if (item.chapters && item.chapters.length > 0) {
+            latestCh = `Ch. ${item.chapters[0].chapterIndex}`;
+        }
+
+        card.innerHTML = `
+            <div class="card-image-wrap">
+                <img src="${wrapProxy(d.coverImage)}" alt="${d.title}" class="card-image" loading="lazy">
+                <div class="card-overlay"></div>
+                ${d.format ? `<div class="card-format">${d.format}</div>` : ''}
+                <div class="card-rating rating-star">★ ${d.rating || '-'}</div>
+            </div>
+            <div class="card-content">
+                <h3 class="card-title">${d.title}</h3>
+                <div class="card-chapter">
+                    <span class="chapter-badge">${latestCh}</span>
+                    <span>👁 ${formatNumber(item.dataMetadata?.totalViewsComputed || 0)}</span>
+                </div>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+}
+
+function showError(id, msg) {
+    const c = document.getElementById(id);
+    if(c) c.innerHTML = `<div class="error-state">${msg}</div>`;
+}
