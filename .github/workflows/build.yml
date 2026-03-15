@@ -27,9 +27,19 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
+      - name: Prepare Web Files (www)
+        run: |
+          mkdir www
+          cp *.html www/
+          cp *.js www/
+          cp *.css www/
+          # Copy images if they exist
+          [ -d img ] && cp -r img www/ || true
+          [ -d assets ] && cp -r assets www/ || true
+
       - name: Initialize Capacitor Android
         run: |
-          npx cap init "Komikcast Reader" "com.abahcode.komikcast" --web-dir "."
+          npx cap init "Komikcast Reader" "com.abahcode.komikcast" --web-dir "www"
           npx cap add android
 
       - name: Build Android App (Debug APK)
