@@ -80,7 +80,7 @@ async function fetchDetails() {
     const loading = document.getElementById('loading');
     
     try {
-        const response = await fetch(wrapProxy(`https://be.komikcast.cc/series/${currentSlug}`), API_OPTIONS);
+        const response = await fetch(`https://be.komikcast.cc/series/${currentSlug}`, API_OPTIONS);
         const json = await response.json();
         
         if (json.status === 200 && json.data) {
@@ -103,7 +103,7 @@ async function fetchDetails() {
 
 async function fetchChapters() {
     try {
-        const response = await fetch(wrapProxy(`https://be.komikcast.cc/series/${currentSlug}/chapters?take=1000`), API_OPTIONS);
+        const response = await fetch(`https://be.komikcast.cc/series/${currentSlug}/chapters?take=1000`, API_OPTIONS);
         const json = await response.json();
         if (json.status === 200 && json.data) {
             allChapters = json.data;
@@ -123,7 +123,7 @@ function renderDetails(data) {
     
     // Fill cover
     const coverImg = document.getElementById('detail-cover');
-    coverImg.src = wrapProxy(data.coverImage);
+    coverImg.src = data.coverImage;
     
     document.getElementById('detail-title').textContent = data.title;
     document.getElementById('detail-native').textContent = data.nativeTitle || '';

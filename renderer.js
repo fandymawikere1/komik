@@ -53,7 +53,7 @@ async function loadMore() {
     }
 
     try {
-        const response = await fetch(wrapProxy(url), API_OPTIONS);
+        const response = await fetch(url, API_OPTIONS);
         const json = await response.json();
         if (json.status === 200 && json.data && json.data.length > 0) {
             renderLatestReleases(json.data, true); // true means append
@@ -83,7 +83,7 @@ async function fetchLatestReleases() {
     currentType = 'latest';
     currentPage = 1;
     try {
-        const response = await fetch(wrapProxy(LATEST_API), API_OPTIONS);
+        const response = await fetch(LATEST_API, API_OPTIONS);
         const json = await response.json();
         if (json.status === 200 && json.data) {
             allLatest = json.data;
@@ -106,7 +106,7 @@ async function handleSearch(query) {
     
     const searchUrl = `https://be.komikcast.cc/series?filter=title=like=%22${encodeURIComponent(query)}%22,nativeTitle=like=%22${encodeURIComponent(query)}%22&takeChapter=2&includeMeta=true&sort=latest&sortOrder=desc&take=12&page=1`;
     try {
-        const response = await fetch(wrapProxy(searchUrl), API_OPTIONS);
+        const response = await fetch(searchUrl, API_OPTIONS);
         const json = await response.json();
         if (json.status === 200 && json.data) {
             renderLatestReleases(json.data, false);
@@ -132,7 +132,7 @@ async function handleGenreSearch(genreName) {
     
     const url = `https://be.komikcast.cc/series?genreIds=${encodeURIComponent(genreName)}&takeChapter=2&includeMeta=true&sort=latest&sortOrder=desc&take=12&page=1`;
     try {
-        const response = await fetch(wrapProxy(url), API_OPTIONS);
+        const response = await fetch(url, API_OPTIONS);
         const json = await response.json();
         if (json.status === 200 && json.data) {
             renderLatestReleases(json.data, false);
@@ -147,7 +147,7 @@ async function handleGenreSearch(genreName) {
 // --- Banner Logic ---
 async function fetchBanners() {
     try {
-        const response = await fetch(wrapProxy(BANNER_API), API_OPTIONS);
+        const response = await fetch(BANNER_API, API_OPTIONS);
         const json = await response.json();
         if (json.status === 200 && json.data) {
             allBanners = json.data;
@@ -320,10 +320,10 @@ function renderBanners(seriesList) {
         };
         
         slide.innerHTML = `
-            <img src="${wrapProxy(data.backgroundImage || data.coverImage)}" alt="BG" class="banner-bg">
+            <img src="${data.backgroundImage || data.coverImage}" alt="BG" class="banner-bg">
             <div class="banner-overlay"></div>
             <div class="banner-content">
-                <img src="${wrapProxy(data.coverImage)}" alt="Cover" class="banner-cover">
+                <img src="${data.coverImage}" alt="Cover" class="banner-cover">
                 <div class="banner-info">
                     ${data.isHot ? '<span class="badge hot">HOT</span>' : ''}
                     <span class="badge type">${data.format}</span>
@@ -428,7 +428,7 @@ function renderLatestReleases(list, append = false) {
 
         card.innerHTML = `
             <div class="card-image-wrap">
-                <img src="${wrapProxy(d.coverImage)}" alt="${d.title}" class="card-image" loading="lazy">
+                <img src="${d.coverImage}" alt="${d.title}" class="card-image" loading="lazy">
                 <div class="card-overlay"></div>
                 ${d.format ? `<div class="card-format">${d.format}</div>` : ''}
                 <div class="card-rating rating-star">★ ${d.rating || '-'}</div>
