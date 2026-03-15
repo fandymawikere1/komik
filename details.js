@@ -130,13 +130,13 @@ function renderDetails(data) {
     document.getElementById('detail-synopsis').textContent = data.synopsis || 'No synopsis available.';
     
     // Bookmark Button
-    const btnContainer = document.querySelector('.detail-info');
+    const btnContainer = document.querySelector('.button-group');
     let bookmarkBtn = document.getElementById('bookmark-btn');
     if (!bookmarkBtn) {
         bookmarkBtn = document.createElement('button');
         bookmarkBtn.id = 'bookmark-btn';
         bookmarkBtn.className = 'bookmark-btn';
-        btnContainer.insertBefore(bookmarkBtn, document.getElementById('start-reading-btn'));
+        btnContainer.appendChild(bookmarkBtn);
     }
     
     updateBookmarkUI();
