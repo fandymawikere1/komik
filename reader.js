@@ -7,10 +7,7 @@ const wrapProxy = (url) => url ? `${PROXY_URL}${encodeURIComponent(url)}` : url;
 
 // Mobile API options (CORS)
 const API_OPTIONS = {
-    mode: 'cors',
-    headers: {
-        'Accept': 'application/json'
-    }
+    // No specific options needed when proxied
 };
 
 let currentTitle = '';
@@ -94,7 +91,7 @@ function updateModeUI() {
 
 async function fetchChapterList() {
     try {
-        const res = await fetch(`https://be.komikcast.cc/series/${currentSlug}/chapters?take=1000`, API_OPTIONS);
+        const res = await fetch(wrapProxy(`https://be.komikcast.cc/series/${currentSlug}/chapters?take=1000`), API_OPTIONS);
         const json = await res.json();
         if (json.status === 200 && json.data) {
             allChapters = json.data;
@@ -160,7 +157,7 @@ async function loadChapter(index) {
     document.getElementById('bottom-controls').style.display = 'none';
     
     try {
-        const res = await fetch(`https://be.komikcast.cc/series/${currentSlug}/chapters/${currentChapterIndex}`, API_OPTIONS);
+        const res = await fetch(wrapProxy(`https://be.komikcast.cc/series/${currentSlug}/chapters/${currentChapterIndex}`), API_OPTIONS);
         const json = await res.json();
         
         if (json.status === 200 && json.data?.data?.images) {

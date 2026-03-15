@@ -31,13 +31,77 @@ const wrapProxy = (url) => url ? `${PROXY_URL}${encodeURIComponent(url)}` : url;
 
 // Mobile API options (CORS)
 const API_OPTIONS = {
-    mode: 'cors',
-    headers: {
-        'Accept': 'application/json'
-    }
+    // No specific options needed when proxied through abahcode
 };
 
-// Format helpers
+async function fetchLatestReleases() {
+    try {
+        const response = await fetch(wrapProxy(LATEST_API), API_OPTIONS);
+        const json = await response.json();
+        if (json.status === 200 && json.data) {
+            allLatest = json.data;
+            renderLatestReleases(allLatest);
+        }
+    } catch (e) {
+        console.error('Error fetching latest:', e);
+    }
+}
+
+async function handleSearch(query) {
+    const grid = document.getElementById('latest-grid');
+    const gridTitle = document.querySelector('.latest-section .section-title');
+    gridTitle.textContent = `Search: ${query}`;
+    grid.innerHTML = '<div class="loading-state">Searching...</div>';
+    
+    const searchUrl = `https://be.komikcast.cc/series?filter=title=like=%22${encodeURIComponent(query)}%22,nativeTitle=like=%22${encodeURIComponent(query)}%22&takeChapter=2&includeMeta=true&sort=latest&sortOrder=desc&take=12&page=1`;
+    try {
+        const response = await fetch(wrapProxy(searchUrl), API_OPTIONS);
+        const json = await response.json();
+        if (json.status === 200 && json.data) {
+            renderLatestReleases(json.data);
+        } else {
+            grid.innerHTML = '<div class="loading-state">No results found.</div>';
+        }
+    } catch (e) {
+        grid.innerHTML = '<div class="loading-state">Failed to fetch search results.</div>';
+    }
+}
+
+async function handleGenreSearch(genreName) {
+    document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+    document.querySelector('.banner-section').style.display = 'none';
+    const grid = document.getElementById('latest-grid');
+    const gridTitle = document.querySelector('.latest-section .section-title');
+    gridTitle.textContent = `Genre: ${genreName}`;
+    grid.innerHTML = '<div class="loading-state">Filtering by genre...</div>';
+    
+    const url = `https://be.komikcast.cc/series?genreIds=${encodeURIComponent(genreName)}&takeChapter=2&includeMeta=true&sort=latest&sortOrder=desc&take=12&page=1`;
+    try {
+        const response = await fetch(wrapProxy(url), API_OPTIONS);
+        const json = await response.json();
+        if (json.status === 200 && json.data) {
+            renderLatestReleases(json.data);
+        } else {
+            grid.innerHTML = '<div class="loading-state">No series found for this genre.</div>';
+        }
+    } catch (e) {
+        grid.innerHTML = '<div class="loading-state">Failed to fetch genre results.</div>';
+    }
+}
+
+// --- Banner Logic ---
+async function fetchBanners() {
+    try {
+        const response = await fetch(wrapProxy(BANNER_API), API_OPTIONS);
+        const json = await response.json();
+        if (json.status === 200 && json.data) {
+            allBanners = json.data;
+            renderBanners(allBanners);
+        }
+    } catch (e) {
+        console.error('Error fetching banners:', e);
+    }
+}
 const formatNumber = (num) => {
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
     if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
@@ -60,13 +124,9 @@ function setupNavbar() {
             } else if (id === 'nav-manga') {
                 handleGenreSearch('Manga');
             } else if (id === 'nav-manhwa') {
-                gridTitle.textContent = 'Latest Manhwa';
-                document.querySelector('.banner-section').style.display = 'none';
-                renderLatestReleases(allLatest.filter(item => item.data.format.toLowerCase() === 'manhwa'));
+                handleGenreSearch('Manhwa');
             } else if (id === 'nav-bookmark') {
-                gridTitle.textContent = 'Bookmarks';
-                document.querySelector('.banner-section').style.display = 'none';
-                document.getElementById('latest-grid').innerHTML = '<div class="loading-state" style="grid-column: 1 / -1;">Bookmark feature under construction!</div>';
+                viewBookmarks();
             }
         });
     });
@@ -81,6 +141,36 @@ function setupNavbar() {
             }
         });
     }
+}
+
+function viewBookmarks() {
+    document.querySelector('.banner-section').style.display = 'none';
+    const gridTitle = document.querySelector('.latest-section .section-title');
+    gridTitle.textContent = 'My Bookmarks';
+    const grid = document.getElementById('latest-grid');
+    grid.innerHTML = '<div class="loading-state">Loading your bookmarks...</div>';
+    
+    const bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '{}');
+    const list = Object.values(bookmarks);
+    
+    if (list.length === 0) {
+        grid.innerHTML = '<div class="loading-state" style="grid-column: 1 / -1;">You haven\'t bookmarked any series yet.</div>';
+        return;
+    }
+    
+    // Convert bookmark format to match latest release format for render
+    const mappedList = list.map(b => ({
+        data: {
+            slug: b.slug,
+            title: b.title,
+            coverImage: b.cover,
+            format: b.format,
+            rating: null
+        },
+        chapters: []
+    }));
+    
+    renderLatestReleases(mappedList);
 }
 
 async function handleSearch(query) {
@@ -252,16 +342,7 @@ function resetAutoSlide() {
 }
 
 // --- Latest ---
-async function fetchLatestReleases() {
-    try {
-        const response = await fetch(LATEST_API);
-        const json = await response.json();
-        if (json.status === 200 && json.data) {
-            allLatest = json.data;
-            renderLatestReleases(allLatest);
-        }
-    } catch (e) { console.error(e); }
-}
+// Removed duplicate fetchLatestReleases to fix Proxy issue.
 
 function renderLatestReleases(list) {
     const grid = document.getElementById('latest-grid');

@@ -41,10 +41,7 @@ const wrapProxy = (url) => url ? `${PROXY_URL}${encodeURIComponent(url)}` : url;
 
 // Mobile API options (CORS)
 const API_OPTIONS = {
-    mode: 'cors',
-    headers: {
-        'Accept': 'application/json'
-    }
+    // No specific options needed when proxied
 };
 
 let currentSeries = null;
@@ -68,12 +65,15 @@ async function fetchDetails() {
     const loading = document.getElementById('loading');
     
     try {
-        const response = await fetch(`https://be.komikcast.cc/series/${currentSlug}`, API_OPTIONS);
+        const response = await fetch(wrapProxy(`https://be.komikcast.cc/series/${currentSlug}`), API_OPTIONS);
         const json = await response.json();
         
         if (json.status === 200 && json.data) {
             currentSeries = json.data.data;
             renderDetails(currentSeries);
+            
+            // Now fetch chapters
+            fetchChapters();
             
             loading.style.display = 'none';
             content.style.display = 'block';
@@ -83,6 +83,23 @@ async function fetchDetails() {
     } catch (e) {
         showError('Network error loading details.');
         console.error(e);
+    }
+}
+
+async function fetchChapters() {
+    try {
+        const response = await fetch(wrapProxy(`https://be.komikcast.cc/series/${currentSlug}/chapters?take=1000`), API_OPTIONS);
+        const json = await response.json();
+        if (json.status === 200 && json.data) {
+            allChapters = json.data;
+            renderChapters(allChapters);
+            updateReadingStatus();
+        } else {
+            renderChapters([]);
+        }
+    } catch (e) {
+        console.error('Chapter fetch error:', e);
+        renderChapters([]);
     }
 }
 
