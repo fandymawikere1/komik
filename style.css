@@ -100,6 +100,7 @@ h1, h2, h3, h4, h5, h6, .logo-text {
 }
 
 /* Search Container Top */
+.mobile-status-filler { display: none; }
 .search-container-top {
     display: flex;
     justify-content: center;
@@ -584,6 +585,25 @@ h1, h2, h3, h4, h5, h6, .logo-text {
     }
 
     /* Search Bar at Top Fixed */
+    .mobile-status-filler {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 35px;
+        background: var(--bg-color);
+        z-index: 1001;
+    }
+    .filler-text {
+        font-family: 'Outfit', sans-serif;
+        font-weight: 800;
+        font-size: 0.9rem;
+        letter-spacing: 1px;
+        color: white;
+    }
     .search-container-top {
         display: block; /* Show on mobile */
         position: fixed;

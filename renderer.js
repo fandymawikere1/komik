@@ -5,7 +5,7 @@ let currentQuery = '';
 let currentGenre = '';
 let currentFormat = '';
 let allMangaData = []; // Store data objects to re-attach listeners on restore
-const API_BASE = 'api.php';
+const API_BASE = 'https://abahcode.com/api.php';
 
 document.addEventListener('DOMContentLoaded', () => {
     fetchBanners();

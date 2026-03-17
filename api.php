@@ -4,25 +4,39 @@ header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
 
-$db_file = 'users.json';
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    exit;
+}
 
-// Initialize "database"
-if (!file_exists($db_file)) {
-    file_put_contents($db_file, json_encode(['users' => []]));
+// Database Credentials - UPDATE THESE
+$db_host = 'localhost';
+$db_name = 'u123456789_komik'; // Update with your DB name
+$db_user = 'u123456789_user'; // Update with your DB user
+$db_pass = 'your_password';   // Update with your DB password
+
+try {
+    $pdo = new PDO("mysql:host=$db_host;dbname=$db_name", $db_user, $db_pass, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+    ]);
+    
+    // Auto-create table if not exists
+    $pdo->exec("CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(255) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        bookmarks TEXT,
+        history TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )");
+
+} catch (PDOException $e) {
+    echo json_encode(['status' => 500, 'message' => 'Database connection failed']);
+    exit;
 }
 
 $input = json_decode(file_get_contents('php://input'), true);
 $action = $_GET['action'] ?? '';
-
-function get_db() {
-    global $db_file;
-    return json_decode(file_get_contents($db_file), true);
-}
-
-function save_db($data) {
-    global $db_file;
-    file_put_contents($db_file, json_encode($data, JSON_PRETTY_PRINT));
-}
 
 switch ($action) {
     case 'register':
@@ -34,44 +48,40 @@ switch ($action) {
             break;
         }
         
-        $db = get_db();
-        foreach ($db['users'] as $user) {
-            if ($user['username'] === $username) {
+        try {
+            $stmt = $pdo->prepare("INSERT INTO users (username, password, bookmarks, history) VALUES (?, ?, '[]', '[]')");
+            $stmt->execute([$username, password_hash($password, PASSWORD_DEFAULT)]);
+            echo json_encode(['status' => 200, 'message' => 'Successful registration']);
+        } catch (PDOException $e) {
+            if ($e->getCode() == 23000) {
                 echo json_encode(['status' => 400, 'message' => 'Username already exists']);
-                exit;
+            } else {
+                echo json_encode(['status' => 500, 'message' => 'Registration failed']);
             }
         }
-        
-        $db['users'][] = [
-            'username' => $username,
-            'password' => password_hash($password, PASSWORD_DEFAULT),
-            'bookmarks' => [],
-            'history' => []
-        ];
-        save_db($db);
-        echo json_encode(['status' => 200, 'message' => 'Successful registration']);
         break;
 
     case 'login':
         $username = $input['username'] ?? '';
         $password = $input['password'] ?? '';
         
-        $db = get_db();
-        foreach ($db['users'] as $user) {
-            if ($user['username'] === $username && password_verify($password, $user['password'])) {
-                echo json_encode([
-                    'status' => 200, 
-                    'message' => 'Login successful', 
-                    'token' => base64_encode($username), // Simple token for demo
-                    'data' => [
-                        'bookmarks' => $user['bookmarks'],
-                        'history' => $user['history']
-                    ]
-                ]);
-                exit;
-            }
+        $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ?");
+        $stmt->execute([$username]);
+        $user = $stmt->fetch();
+        
+        if ($user && password_verify($password, $user['password'])) {
+            echo json_encode([
+                'status' => 200, 
+                'message' => 'Login successful', 
+                'token' => base64_encode($username),
+                'data' => [
+                    'bookmarks' => json_decode($user['bookmarks'] ?: '{}', true),
+                    'history' => json_decode($user['history'] ?: '{}', true)
+                ]
+            ]);
+        } else {
+            echo json_encode(['status' => 401, 'message' => 'Invalid credentials']);
         }
-        echo json_encode(['status' => 401, 'message' => 'Invalid credentials']);
         break;
 
     case 'sync':
@@ -80,23 +90,33 @@ switch ($action) {
         $bookmarks = $input['bookmarks'] ?? null;
         $history = $input['history'] ?? null;
         
-        $db = get_db();
-        $found = false;
-        foreach ($db['users'] as &$user) {
-            if ($user['username'] === $username) {
-                if ($bookmarks !== null) $user['bookmarks'] = $bookmarks;
-                if ($history !== null) $user['history'] = $history;
-                $found = true;
-                break;
-            }
+        if (!$username) {
+            echo json_encode(['status' => 401, 'message' => 'Unauthorized']);
+            exit;
         }
         
-        if ($found) {
-            save_db($db);
-            echo json_encode(['status' => 200, 'message' => 'Sync successful']);
-        } else {
-            echo json_encode(['status' => 401, 'message' => 'Unauthorized']);
+        $sql = "UPDATE users SET ";
+        $params = [];
+        if ($bookmarks !== null) {
+            $sql .= "bookmarks = ?, ";
+            $params[] = json_encode($bookmarks);
         }
+        if ($history !== null) {
+            $sql .= "history = ?, ";
+            $params[] = json_encode($history);
+        }
+        
+        if (empty($params)) {
+            echo json_encode(['status' => 200, 'message' => 'Nothing to sync']);
+            exit;
+        }
+        
+        $sql = rtrim($sql, ', ') . " WHERE username = ?";
+        $params[] = $username;
+        
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        echo json_encode(['status' => 200, 'message' => 'Sync successful']);
         break;
 
     default:
