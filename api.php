@@ -115,8 +115,8 @@ switch ($action) {
                 'message' => 'Login successful', 
                 'token' => base64_encode($username),
                 'data' => [
-                    'bookmarks' => $bookmarks,
-                    'history' => $history
+                    'bookmarks' => (object)$bookmarks,
+                    'history' => (object)$history
                 ]
             ]);
         } else {

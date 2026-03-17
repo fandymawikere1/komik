@@ -16,8 +16,12 @@ async function syncDataToServer() {
     const token = localStorage.getItem('user_token');
     if (!token) return;
     
-    const bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '{}');
-    const history = JSON.parse(localStorage.getItem('reading_history') || '{}');
+    let bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '{}');
+    let history = JSON.parse(localStorage.getItem('reading_history') || '{}');
+    
+    // Defensive check
+    if (Array.isArray(bookmarks)) bookmarks = {};
+    if (Array.isArray(history)) history = {};
     
     try {
         const response = await fetch(`${API_BASE}?action=sync&token=${encodeURIComponent(token)}`, {
