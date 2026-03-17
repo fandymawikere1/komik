@@ -72,6 +72,19 @@ async function initDetails() {
         });
     }
 
+    // Setup back button
+    const backBtn = document.getElementById('back-btn');
+    if (backBtn) {
+        backBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.location.href = 'index.html';
+            }
+        });
+    }
+
     await fetchDetails();
 }
 
