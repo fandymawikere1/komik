@@ -2,6 +2,26 @@ document.addEventListener('DOMContentLoaded', () => {
     initDetails();
 });
 
+const API_BASE = 'https://abahcode.com/api.php';
+
+async function syncDataToServer() {
+    const token = localStorage.getItem('user_token');
+    if (!token) return;
+    
+    const bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '{}');
+    const history = JSON.parse(localStorage.getItem('reading_history') || '{}');
+    
+    try {
+        await fetch(`${API_BASE}?action=sync&token=${token}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bookmarks, history })
+        });
+    } catch (e) {
+        console.error('Sync failed', e);
+    }
+}
+
 function handleGenreClick(genreName) {
     // Redirect to home with genre filter (simulated via query param)
     window.location.href = `index.html?genre=${encodeURIComponent(genreName)}`;
@@ -221,9 +241,7 @@ function toggleBookmark() {
     updateBookmarkUI();
     
     // Proactive sync
-    if (typeof syncDataToServer === 'function') syncDataToServer();
-    // For details.js which doesn't have syncDataToServer, we can just let the next index.html load handle it, 
-    // or quickly define a small sync here.
+    syncDataToServer();
 }
 
 function renderChapters(chapters) {

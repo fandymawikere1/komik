@@ -10,6 +10,26 @@ const API_OPTIONS = {
     // No specific options needed when proxied
 };
 
+const API_BASE = 'https://abahcode.com/api.php';
+
+async function syncDataToServer() {
+    const token = localStorage.getItem('user_token');
+    if (!token) return;
+    
+    const bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '{}');
+    const history = JSON.parse(localStorage.getItem('reading_history') || '{}');
+    
+    try {
+        await fetch(`${API_BASE}?action=sync&token=${token}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bookmarks, history })
+        });
+    } catch (e) {
+        console.error('Sync failed', e);
+    }
+}
+
 let currentTitle = '';
 let currentFormat = '';
 let allChapters = [];
@@ -164,6 +184,7 @@ async function loadChapter(index) {
         const history = JSON.parse(localStorage.getItem('reading_history') || '{}');
         history[currentSlug] = currentChapterIndex;
         localStorage.setItem('reading_history', JSON.stringify(history));
+        syncDataToServer();
     } catch(e) {}
     
     const container = document.getElementById('image-container');

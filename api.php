@@ -10,16 +10,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 // Database Credentials - UPDATE THESE
 $db_host = 'localhost';
-$db_name = 'u123456789_komik'; // Update with your DB name
-$db_user = 'u123456789_user'; // Update with your DB user
-$db_pass = 'your_password';   // Update with your DB password
+$db_name = 'u336321780_komik'; // Update with your DB name
+$db_user = 'u336321780_komik'; // Update with your DB user
+$db_pass = '&VDdS7sZ';   // Update with your DB password
 
 try {
     $pdo = new PDO("mysql:host=$db_host;dbname=$db_name", $db_user, $db_pass, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
     ]);
-    
+
     // Auto-create table if not exists
     $pdo->exec("CREATE TABLE IF NOT EXISTS users (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -42,12 +42,12 @@ switch ($action) {
     case 'register':
         $username = $input['username'] ?? '';
         $password = $input['password'] ?? '';
-        
+
         if (!$username || !$password) {
             echo json_encode(['status' => 400, 'message' => 'Username and password required']);
             break;
         }
-        
+
         try {
             $stmt = $pdo->prepare("INSERT INTO users (username, password, bookmarks, history) VALUES (?, ?, '[]', '[]')");
             $stmt->execute([$username, password_hash($password, PASSWORD_DEFAULT)]);
@@ -64,15 +64,15 @@ switch ($action) {
     case 'login':
         $username = $input['username'] ?? '';
         $password = $input['password'] ?? '';
-        
+
         $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ?");
         $stmt->execute([$username]);
         $user = $stmt->fetch();
-        
+
         if ($user && password_verify($password, $user['password'])) {
             echo json_encode([
-                'status' => 200, 
-                'message' => 'Login successful', 
+                'status' => 200,
+                'message' => 'Login successful',
                 'token' => base64_encode($username),
                 'data' => [
                     'bookmarks' => json_decode($user['bookmarks'] ?: '{}', true),
@@ -89,12 +89,12 @@ switch ($action) {
         $username = base64_decode($token);
         $bookmarks = $input['bookmarks'] ?? null;
         $history = $input['history'] ?? null;
-        
+
         if (!$username) {
             echo json_encode(['status' => 401, 'message' => 'Unauthorized']);
             exit;
         }
-        
+
         $sql = "UPDATE users SET ";
         $params = [];
         if ($bookmarks !== null) {
@@ -105,15 +105,15 @@ switch ($action) {
             $sql .= "history = ?, ";
             $params[] = json_encode($history);
         }
-        
+
         if (empty($params)) {
             echo json_encode(['status' => 200, 'message' => 'Nothing to sync']);
             exit;
         }
-        
+
         $sql = rtrim($sql, ', ') . " WHERE username = ?";
         $params[] = $username;
-        
+
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         echo json_encode(['status' => 200, 'message' => 'Sync successful']);
