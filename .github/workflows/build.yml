@@ -41,6 +41,14 @@ jobs:
         run: |
           npx cap init "Komikcast Reader" "com.abahcode.komikcast" --web-dir "www"
           npx cap add android
+          npx cap sync android
+
+      - name: Auto Increment Version Code & Name
+        run: |
+          # Increment versionCode using GITHUB_RUN_NUMBER
+          # Increment versionName to include run number for clarity
+          sed -i "s/versionCode 1/versionCode $GITHUB_RUN_NUMBER/" android/app/build.gradle
+          sed -i "s/versionName \"1.0\"/versionName \"1.0.$GITHUB_RUN_NUMBER\"/" android/app/build.gradle
 
       - name: Inject Android Network Security & Permissions
         run: |
@@ -50,7 +58,6 @@ jobs:
           cp android-config/network_security_config.xml android/app/src/main/res/xml/network_security_config.xml
           
           # Inject networkSecurityConfig into AndroidManifest.xml
-          # Path correction: it's in src/main/, not src/main/res/
           sed -i 's/<application/<application android:networkSecurityConfig="@xml\/network_security_config" android:usesCleartextTraffic="true"/' android/app/src/main/AndroidManifest.xml
           
           # Ensure INTERNET permission exists
