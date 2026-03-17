@@ -5,6 +5,7 @@ let currentQuery = '';
 let currentGenre = '';
 let currentFormat = '';
 let allMangaData = []; // Store data objects to re-attach listeners on restore
+const API_BASE = 'api.php';
 
 document.addEventListener('DOMContentLoaded', () => {
     fetchBanners();
@@ -37,7 +38,31 @@ document.addEventListener('DOMContentLoaded', () => {
     
     setupNavbar();
     setupInfiniteScroll();
+    
+    // Auto-sync if logged in
+    if (localStorage.getItem('user_token')) {
+        setInterval(syncDataToServer, 60000); // Every minute
+        syncDataToServer(); // Initial sync
+    }
 });
+
+async function syncDataToServer() {
+    const token = localStorage.getItem('user_token');
+    if (!token) return;
+    
+    const bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '{}');
+    const history = JSON.parse(localStorage.getItem('reading_history') || '{}');
+    
+    try {
+        await fetch(`${API_BASE}?action=sync&token=${token}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bookmarks, history })
+        });
+    } catch (e) {
+        console.error('Sync failed', e);
+    }
+}
 
 function saveAppState() {
     const state = {
@@ -273,10 +298,36 @@ function setupNavbar() {
             } else if (id === 'nav-webtoon') {
                 handleFormatSearch('Webtoon');
             } else if (id === 'nav-bookmark') {
-                viewBookmarks();
+                if (!localStorage.getItem('user_token')) {
+                    window.location.href = 'login.html';
+                } else {
+                    viewBookmarks();
+                }
             }
         });
     });
+
+    // Add User Profile / Login button to navbar if not exists
+    const navLinks = document.querySelector('.nav-links');
+    if (!document.getElementById('nav-user')) {
+        const username = localStorage.getItem('username');
+        const userLink = document.createElement('a');
+        userLink.id = 'nav-user';
+        userLink.href = username ? '#' : 'login.html';
+        userLink.innerHTML = username ? 
+            `<i class="fa-solid fa-user nav-icon"></i><span class="nav-text">${username}</span>` : 
+            `<i class="fa-solid fa-right-to-bracket nav-icon"></i><span class="nav-text">Login</span>`;
+        if (username) {
+            userLink.onclick = () => {
+                if (confirm('Logout?')) {
+                    localStorage.removeItem('user_token');
+                    localStorage.removeItem('username');
+                    window.location.reload();
+                }
+            };
+        }
+        navLinks.appendChild(userLink);
+    }
     
     // Search Functionality
     const searchInput = document.getElementById('search-input');
@@ -320,7 +371,7 @@ function viewBookmarks() {
         chapters: []
     }));
     
-    renderLatestReleases(mappedList);
+    renderLatestReleases(mappedList, false, true); // Added isBookmarkView flag
 }
 
 async function handleSearch(query) {
@@ -495,7 +546,7 @@ function resetAutoSlide() {
 // --- Latest ---
 // Removed duplicate fetchLatestReleases to fix Proxy issue.
 
-function renderLatestReleases(list, append = false) {
+function renderLatestReleases(list, append = false, isBookmarkView = false) {
     const grid = document.getElementById('latest-grid');
     if (!append) {
         grid.innerHTML = '';
@@ -513,6 +564,9 @@ function renderLatestReleases(list, append = false) {
         allMangaData = [...list];
     }
 
+    // Get history for 'Last Read' info
+    const history = isBookmarkView ? JSON.parse(localStorage.getItem('reading_history') || '{}') : {};
+
     list.forEach(item => {
         const d = item.data;
         const card = document.createElement('div');
@@ -522,10 +576,15 @@ function renderLatestReleases(list, append = false) {
             window.location.href = `details.html?slug=${encodeURIComponent(d.slug)}`;
         };
         
-        let latestCh = 'Ch. ?';
-        if (item.chapters && item.chapters.length > 0) {
-            latestCh = `Ch. ${item.chapters[0].chapterIndex}`;
+        let labelText = 'Ch. ?';
+        if (isBookmarkView) {
+            const lastRead = history[d.slug];
+            labelText = lastRead ? `Last: Ch. ${lastRead}` : 'Unread';
+        } else if (item.chapters && item.chapters.length > 0) {
+            labelText = `Ch. ${item.chapters[0].chapterIndex}`;
         }
+
+        const viewCount = !isBookmarkView ? `<span>👁 ${formatNumber(item.dataMetadata?.totalViewsComputed || 0)}</span>` : '';
 
         card.innerHTML = `
             <div class="card-image-wrap">
@@ -537,8 +596,8 @@ function renderLatestReleases(list, append = false) {
             <div class="card-content">
                 <h3 class="card-title">${d.title}</h3>
                 <div class="card-chapter">
-                    <span class="chapter-badge">${latestCh}</span>
-                    <span>👁 ${formatNumber(item.dataMetadata?.totalViewsComputed || 0)}</span>
+                    <span class="chapter-badge">${labelText}</span>
+                    ${viewCount}
                 </div>
             </div>
         `;

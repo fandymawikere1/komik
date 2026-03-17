@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Komikcast</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .auth-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 2rem;
+            background: var(--surface-color);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 1px solid var(--glass-border);
+        }
+        .auth-title { text-align: center; margin-bottom: 2rem; font-size: 1.5rem; }
+        .form-group { margin-bottom: 1.5rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem; }
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--glass-border);
+            color: white;
+            outline: none;
+        }
+        .form-group input:focus { border-color: var(--accent-color); }
+        .auth-btn {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 1rem;
+        }
+        .auth-switch { text-align: center; margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-secondary); }
+        .auth-switch span { color: var(--accent-color); cursor: pointer; font-weight: 600; }
+        .error-msg { color: var(--danger); font-size: 0.85rem; margin-top: 0.5rem; text-align: center; display: none; }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <h2 class="auth-title" id="form-title">Login</h2>
+        <div class="form-group">
+            <label>Username</label>
+            <input type="text" id="username" placeholder="Masukkan username">
+        </div>
+        <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="password" placeholder="Masukkan password">
+        </div>
+        <button class="auth-btn" id="submit-btn">Login</button>
+        <div id="error-msg" class="error-msg"></div>
+        <div class="auth-switch" id="auth-switch-text">
+            Belum punya akun? <span onclick="toggleAuth()">Daftar</span>
+        </div>
+        <div style="text-align: center; margin-top: 1rem;">
+            <a href="index.html" style="color: var(--text-secondary); font-size: 0.8rem; text-decoration: none;">Kembali ke Home</a>
+        </div>
+    </div>
+
+    <script>
+        let isLogin = true;
+        const API_BASE = 'api.php'; // In production, this would be your full server URL
+
+        function toggleAuth() {
+            isLogin = !isLogin;
+            document.getElementById('form-title').textContent = isLogin ? 'Login' : 'Daftar';
+            document.getElementById('submit-btn').textContent = isLogin ? 'Login' : 'Daftar';
+            document.getElementById('auth-switch-text').innerHTML = isLogin ? 
+                'Belum punya akun? <span onclick="toggleAuth()">Daftar</span>' : 
+                'Sudah punya akun? <span onclick="toggleAuth()">Login</span>';
+        }
+
+        document.getElementById('submit-btn').onclick = async () => {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const errorEl = document.getElementById('error-msg');
+            
+            if (!username || !password) {
+                errorEl.textContent = 'Harap isi semua kolom';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            const action = isLogin ? 'login' : 'register';
+            try {
+                const res = await fetch(`${API_BASE}?action=${action}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+
+                if (data.status === 200) {
+                    if (isLogin) {
+                        localStorage.setItem('user_token', data.token);
+                        localStorage.setItem('username', username);
+                        // Merge local data with server data if needed
+                        if (data.data) {
+                            localStorage.setItem('bookmarks', JSON.stringify(data.data.bookmarks || {}));
+                            localStorage.setItem('reading_history', JSON.stringify(data.data.history || {}));
+                        }
+                        window.location.href = 'index.html';
+                    } else {
+                        alert('Pendaftaran berhasil! Silakan login.');
+                        toggleAuth();
+                    }
+                } else {
+                    errorEl.textContent = data.message;
+                    errorEl.style.display = 'block';
+                }
+            } catch (e) {
+                errorEl.textContent = 'Terjadi kesalahan koneksi';
+                errorEl.style.display = 'block';
+            }
+        };
+    </script>
+</body>
+</html>

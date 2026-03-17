@@ -201,6 +201,11 @@ function updateBookmarkUI() {
 }
 
 function toggleBookmark() {
+    if (!localStorage.getItem('user_token')) {
+        alert('Silakan login untuk menyimpan bookmark.');
+        window.location.href = 'login.html';
+        return;
+    }
     const bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '{}');
     if (bookmarks[currentSlug]) {
         delete bookmarks[currentSlug];
@@ -214,6 +219,11 @@ function toggleBookmark() {
     }
     localStorage.setItem('bookmarks', JSON.stringify(bookmarks));
     updateBookmarkUI();
+    
+    // Proactive sync
+    if (typeof syncDataToServer === 'function') syncDataToServer();
+    // For details.js which doesn't have syncDataToServer, we can just let the next index.html load handle it, 
+    // or quickly define a small sync here.
 }
 
 function renderChapters(chapters) {
