@@ -6,14 +6,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // --- Back Button Handler ---
         if (App) {
-            App.addListener('backButton', ({ canGoBack }) => {
-                const path = window.location.pathname;
-                // If we are at the root or index.html, pressing back exits the app
-                if (path === '/' || path.endsWith('index.html') || path.length === 0) {
-                    App.exitApp();
-                } else {
-                    // Otherwise, just go back in history (e.g., from Reader -> Details, or Details -> Home)
+            App.addListener('backButton', () => {
+                // Better history handling
+                if (window.history.length > 1) {
                     window.history.back();
+                } else {
+                    App.exitApp();
                 }
             });
         }

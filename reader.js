@@ -34,7 +34,11 @@ async function initReader() {
     updateModeUI();
 
     document.getElementById('back-btn').addEventListener('click', () => {
-        window.location.href = `details.html?slug=${currentSlug}`;
+        if (window.history.length > 1) {
+            window.history.back();
+        } else {
+            window.location.href = `details.html?slug=${currentSlug}`;
+        }
     });
 
     document.getElementById('mode-toggle').addEventListener('click', () => {

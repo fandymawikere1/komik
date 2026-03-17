@@ -238,6 +238,9 @@ function viewBookmarks() {
     const grid = document.getElementById('latest-grid');
     grid.innerHTML = '<div class="loading-state">Loading your bookmarks...</div>';
     
+    currentType = 'bookmark';
+    currentPage = 1;
+    
     const bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '{}');
     const list = Object.values(bookmarks);
     
