@@ -44,7 +44,7 @@ async function initReader() {
         renderImages(currentChapterImages);
     });
 
-    // Auto-next chapter on scroll (Webtoon mode)
+    // Hide/Show navbar on scroll
     let lastScrollTop = 0;
     const navbar = document.querySelector('.reader-navbar');
     
@@ -58,23 +58,6 @@ async function initReader() {
             navbar.classList.remove('navbar-hidden');
         }
         lastScrollTop = scrollTop;
-
-        if (!isPagingMode && currentChapterImages.length > 0) {
-            const scrollHeight = document.documentElement.scrollHeight;
-            const clientHeight = document.documentElement.clientHeight;
-            
-            // If scrolled to bottom (within 50px buffer)
-            if (scrollTop + clientHeight >= scrollHeight - 50) {
-                // Throttle a bit to prevent multiple triggers
-                if (!window.nextChapterLoading) {
-                    window.nextChapterLoading = true;
-                    setTimeout(() => {
-                        navigateChapter(1);
-                        window.nextChapterLoading = false;
-                    }, 500);
-                }
-            }
-        }
     });
 
     // Toggle navbar on click
@@ -216,6 +199,10 @@ async function renderImages(images) {
             img.classList.toggle('active', i === currentPageIndex);
             img.onclick = (e) => {
                 e.stopPropagation(); // Prevent bubbling to container toggle
+                if (img.dataset.failed === 'true') {
+                    // Handled by the listener added in setupImageLoading
+                    return;
+                }
                 const rect = img.getBoundingClientRect();
                 const x = e.clientX - rect.left;
                 if (x > rect.width / 2) navigatePage(1);
@@ -239,7 +226,7 @@ async function renderImages(images) {
     // 1. Load the first 3 images immediately to show content fast
     const initialBatch = 3;
     for (let i = 0; i < Math.min(initialBatch, imgElements.length); i++) {
-        imgElements[i].element.src = imgElements[i].url;
+        setupImageLoading(imgElements[i].element, imgElements[i].url);
     }
 
     // 2. Load the rest sequentially in the background
@@ -249,8 +236,18 @@ async function renderImages(images) {
             // Sequential loading: wait for current image to start loading before next
             await new Promise(resolve => {
                 const img = imgElements[i].element;
-                img.onload = img.onerror = resolve;
-                img.src = imgElements[i].url;
+                const oldOnload = img.onload;
+                const oldOnerror = img.onerror;
+                
+                img.onload = () => {
+                    if (oldOnload) oldOnload();
+                    resolve();
+                };
+                img.onerror = () => {
+                    if (oldOnerror) oldOnerror();
+                    resolve();
+                };
+                setupImageLoading(img, imgElements[i].url);
                 
                 // timeout as failsafe so we don't hang the loop
                 setTimeout(resolve, 1000); 
@@ -260,6 +257,36 @@ async function renderImages(images) {
 
     loadRemaining();
     window.scrollTo(0, 0);
+    
+    // Allow next chapter scroll after a 2000ms delay to prevent immediate skips
+    window.isChapterReadyForNext = false;
+    setTimeout(() => { window.isChapterReadyForNext = true; }, 2000);
+}
+
+function setupImageLoading(img, url) {
+    img.onerror = function() {
+        this.dataset.failed = 'true';
+        this.onerror = null; // Prevent infinite loop on the fallback image
+        // A simple inline SVG showing a retry button
+        this.src = 'data:image/svg+xml;charset=UTF-8,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100%25" height="300px" viewBox="0 0 100 100" preserveAspectRatio="none"%3E%3Crect width="100" height="100" fill="%231e293b" /%3E%3Ctext x="50" y="45" font-family="sans-serif" font-size="5" fill="%23ef4444" text-anchor="middle" dominant-baseline="middle"%3EFailed to load image.%3C/text%3E%3Ctext x="50" y="55" font-family="sans-serif" font-size="4" fill="%23fff" text-anchor="middle" dominant-baseline="middle"%3EClick to reload%3C/text%3E%3C/svg%3E';
+    };
+    
+    img.addEventListener('click', function(e) {
+        if (this.dataset.failed === 'true') {
+            e.stopPropagation();
+            this.dataset.failed = 'false';
+            
+            // Re-attach original onerror and reload
+            this.onerror = function() {
+                this.dataset.failed = 'true';
+                this.onerror = null;
+                this.src = 'data:image/svg+xml;charset=UTF-8,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100%25" height="300px" viewBox="0 0 100 100" preserveAspectRatio="none"%3E%3Crect width="100" height="100" fill="%231e293b" /%3E%3Ctext x="50" y="45" font-family="sans-serif" font-size="5" fill="%23ef4444" text-anchor="middle" dominant-baseline="middle"%3EFailed to load image.%3C/text%3E%3Ctext x="50" y="55" font-family="sans-serif" font-size="4" fill="%23fff" text-anchor="middle" dominant-baseline="middle"%3EClick to reload%3C/text%3E%3C/svg%3E';
+            };
+            this.src = url;
+        }
+    });
+    
+    img.src = url;
 }
 
 function navigatePage(dir) {

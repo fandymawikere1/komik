@@ -1,6 +1,6 @@
 {
   "name": "komikcast-reader",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Premium Manga Reader for Windows and Android",
   "main": "main.js",
   "scripts": {
