@@ -99,9 +99,12 @@ h1, h2, h3, h4, h5, h6, .logo-text {
     box-shadow: 0 0 8px var(--accent-glow);
 }
 
-/* Search Container Top (Mobile only) */
+/* Search Container Top */
 .search-container-top {
-    display: none; /* Hidden on desktop */
+    display: flex;
+    justify-content: center;
+    padding: 1rem 4rem;
+    background: var(--bg-color);
 }
 
 .search-wrap {
@@ -110,9 +113,19 @@ h1, h2, h3, h4, h5, h6, .logo-text {
     position: relative;
 }
 
+.search-icon {
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+    pointer-events: none;
+    z-index: 5;
+}
+
 #search-input {
     width: 100%;
-    padding: 12px 20px;
+    padding: 12px 20px 12px 45px;
     border-radius: 30px;
     border: 1px solid var(--glass-border);
     background: rgba(255, 255, 255, 0.05);
@@ -574,7 +587,7 @@ h1, h2, h3, h4, h5, h6, .logo-text {
     .search-container-top {
         display: block; /* Show on mobile */
         position: fixed;
-        top: 0;
+        top: 35px; /* Avoiding Android Status Bar */
         left: 0;
         width: 100%;
         padding: 10px;
@@ -593,7 +606,7 @@ h1, h2, h3, h4, h5, h6, .logo-text {
     }
 
     .container {
-        padding: 75px 0.8rem 80px 0.8rem;
+        padding: 110px 0.8rem 80px 0.8rem;
     }
 
     .carousel-container {
