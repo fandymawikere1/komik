@@ -17,7 +17,8 @@ $db_pass = '&VDdS7sZ';
 try {
     $pdo = new PDO("mysql:host=$db_host;dbname=$db_name", $db_user, $db_pass, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8"
     ]);
     
     // 1. Users Table
@@ -77,7 +78,7 @@ switch ($action) {
             if ($e->getCode() == 23000) {
                 echo json_encode(['status' => 400, 'message' => 'Username already exists']);
             } else {
-                echo json_encode(['status' => 500, 'message' => 'Registration failed']);
+                echo json_encode(['status' => 500, 'message' => 'Registration failed: ' . $e->getMessage()]);
             }
         }
         break;
@@ -129,39 +130,49 @@ switch ($action) {
         $bookmarks = $input['bookmarks'] ?? null;
         $history = $input['history'] ?? null;
         
+        if (!$token || !$username) {
+            echo json_encode(['status' => 401, 'message' => 'Unauthorized: Invalid or missing token']);
+            exit;
+        }
+
         $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ?");
         $stmt->execute([$username]);
         $user = $stmt->fetch();
 
         if (!$user) {
-            echo json_encode(['status' => 401, 'message' => 'Unauthorized']);
+            echo json_encode(['status' => 401, 'message' => 'Unauthorized: User not found (' . $username . ')']);
             exit;
         }
 
         $userId = $user['id'];
 
-        // Sync Bookmarks
-        if ($bookmarks !== null) {
-            foreach ($bookmarks as $slug => $data) {
-                $stmt = $pdo->prepare("INSERT INTO bookmarks (user_id, slug, title, cover, format) 
-                                     VALUES (?, ?, ?, ?, ?) 
-                                     ON DUPLICATE KEY UPDATE title=VALUES(title), cover=VALUES(cover), format=VALUES(format)");
-                $stmt->execute([$userId, $slug, $data['title'], $data['cover'], $data['format']]);
+        try {
+            // Sync Bookmarks
+            if ($bookmarks !== null && is_array($bookmarks)) {
+                foreach ($bookmarks as $slug => $data) {
+                    if (empty($slug)) continue;
+                    $stmt = $pdo->prepare("INSERT INTO bookmarks (user_id, slug, title, cover, format) 
+                                         VALUES (?, ?, ?, ?, ?) 
+                                         ON DUPLICATE KEY UPDATE title=VALUES(title), cover=VALUES(cover), format=VALUES(format)");
+                    $stmt->execute([$userId, $slug, $data['title'] ?? '', $data['cover'] ?? '', $data['format'] ?? '']);
+                }
             }
-            // Optional: Delete bookmarks removed locally (not implemented for safety, but possible)
-        }
 
-        // Sync History
-        if ($history !== null) {
-            foreach ($history as $slug => $lastChapter) {
-                $stmt = $pdo->prepare("INSERT INTO history (user_id, slug, last_chapter) 
-                                     VALUES (?, ?, ?) 
-                                     ON DUPLICATE KEY UPDATE last_chapter=VALUES(last_chapter)");
-                $stmt->execute([$userId, $slug, $lastChapter]);
+            // Sync History
+            if ($history !== null && is_array($history)) {
+                foreach ($history as $slug => $lastChapter) {
+                    if (empty($slug)) continue;
+                    $stmt = $pdo->prepare("INSERT INTO history (user_id, slug, last_chapter) 
+                                         VALUES (?, ?, ?) 
+                                         ON DUPLICATE KEY UPDATE last_chapter=VALUES(last_chapter)");
+                    $stmt->execute([$userId, $slug, (string)$lastChapter]);
+                }
             }
+            
+            echo json_encode(['status' => 200, 'message' => 'Sync successful']);
+        } catch (PDOException $e) {
+            echo json_encode(['status' => 500, 'message' => 'Sync failed: ' . $e->getMessage()]);
         }
-        
-        echo json_encode(['status' => 200, 'message' => 'Sync successful']);
         break;
 
     default:

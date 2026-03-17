@@ -12,11 +12,13 @@ async function syncDataToServer() {
     const history = JSON.parse(localStorage.getItem('reading_history') || '{}');
     
     try {
-        await fetch(`${API_BASE}?action=sync&token=${token}`, {
+        const response = await fetch(`${API_BASE}?action=sync&token=${encodeURIComponent(token)}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ bookmarks, history })
         });
+        const result = await response.json();
+        console.log('Sync result:', result);
     } catch (e) {
         console.error('Sync failed', e);
     }
