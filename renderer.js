@@ -4,10 +4,20 @@ let currentType = 'latest'; // 'latest', 'search', 'genre', 'bookmark', 'format'
 let currentQuery = '';
 let currentGenre = '';
 let currentFormat = '';
+let allMangaData = []; // Store data objects to re-attach listeners on restore
 
 document.addEventListener('DOMContentLoaded', () => {
     fetchBanners();
     
+    // Check if we should restore state (from Back button)
+    const shouldRestore = sessionStorage.getItem('should_restore_state');
+    if (shouldRestore === 'true') {
+        restoreAppState();
+        setupNavbar();
+        setupInfiniteScroll();
+        return;
+    }
+
     // Check for URL parameters (genre or search redirection)
     const urlParams = new URLSearchParams(window.location.search);
     const genreParam = urlParams.get('genre');
@@ -28,6 +38,53 @@ document.addEventListener('DOMContentLoaded', () => {
     setupNavbar();
     setupInfiniteScroll();
 });
+
+function saveAppState() {
+    const state = {
+        currentType,
+        currentQuery,
+        currentGenre,
+        currentFormat,
+        currentPage,
+        allMangaData,
+        scrollPos: window.scrollY,
+        title: document.querySelector('.latest-section .section-title').textContent,
+        bannerDisplay: document.querySelector('.banner-section').style.display,
+        activeNavLinkId: document.querySelector('.nav-links a.active')?.id
+    };
+    sessionStorage.setItem('saved_app_state', JSON.stringify(state));
+    sessionStorage.setItem('should_restore_state', 'true');
+}
+
+function restoreAppState() {
+    const saved = sessionStorage.getItem('saved_app_state');
+    if (!saved) return;
+    
+    const state = JSON.parse(saved);
+    currentType = state.currentType;
+    currentQuery = state.currentQuery;
+    currentGenre = state.currentGenre;
+    currentFormat = state.currentFormat;
+    currentPage = state.currentPage;
+    allMangaData = state.allMangaData || [];
+    
+    renderLatestReleases(allMangaData, false);
+    
+    document.querySelector('.latest-section .section-title').textContent = state.title;
+    document.querySelector('.banner-section').style.display = state.bannerDisplay || 'block';
+    
+    // Restore active nav link
+    document.querySelectorAll('.nav-links a').forEach(l => l.classList.remove('active'));
+    if (state.activeNavLinkId) {
+        document.getElementById(state.activeNavLinkId)?.classList.add('active');
+    }
+
+    // Restore scroll position after a short delay to ensure DOM is ready
+    setTimeout(() => {
+        window.scrollTo(0, state.scrollPos);
+        sessionStorage.removeItem('should_restore_state');
+    }, 150);
+}
 
 function setupInfiniteScroll() {
     window.addEventListener('scroll', () => {
@@ -204,6 +261,8 @@ function setupNavbar() {
             target.classList.add('active');
             
             if (id === 'nav-home') {
+                sessionStorage.removeItem('should_restore_state');
+                sessionStorage.removeItem('saved_app_state');
                 window.location.reload();
             } else if (id === 'nav-manga') {
                 handleFormatSearch('Manga');
@@ -349,6 +408,7 @@ function renderBanners(seriesList) {
         slide.className = 'banner-item';
         slide.style.cursor = 'pointer';
         slide.onclick = () => {
+            saveAppState();
             window.location.href = `details.html?slug=${encodeURIComponent(data.slug)}`;
         };
         
@@ -367,7 +427,7 @@ function renderBanners(seriesList) {
                         <span class="meta-item">${data.totalChapters ? data.totalChapters + ' Chapters' : 'Ongoing'}</span>
                     </div>
                     <p class="banner-synopsis">${data.synopsis || 'No synopsis.'}</p>
-                    <button class="read-btn" onclick="event.stopPropagation(); window.location.href='reader.html?slug=${encodeURIComponent(data.slug)}&title=${encodeURIComponent(data.title)}'">Read Now</button>
+                    <button class="read-btn" onclick="event.stopPropagation(); saveAppState(); window.location.href='reader.html?slug=${encodeURIComponent(data.slug)}&title=${encodeURIComponent(data.title)}'">Read Now</button>
                 </div>
             </div>
         `;
@@ -439,6 +499,7 @@ function renderLatestReleases(list, append = false) {
     const grid = document.getElementById('latest-grid');
     if (!append) {
         grid.innerHTML = '';
+        allMangaData = [];
     }
     
     if (!list || !list.length) {
@@ -446,11 +507,18 @@ function renderLatestReleases(list, append = false) {
         return;
     }
 
+    if (append) {
+        allMangaData = [...allMangaData, ...list];
+    } else {
+        allMangaData = [...list];
+    }
+
     list.forEach(item => {
         const d = item.data;
         const card = document.createElement('div');
         card.className = 'comic-card';
         card.onclick = () => {
+            saveAppState();
             window.location.href = `details.html?slug=${encodeURIComponent(d.slug)}`;
         };
         
