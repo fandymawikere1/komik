@@ -7,6 +7,31 @@ let currentFormat = '';
 let allMangaData = []; // Store data objects to re-attach listeners on restore
 const API_BASE = 'https://abahcode.com/api.php';
 
+async function refreshUserData() {
+    const token = localStorage.getItem('user_token');
+    if (!token) return;
+    
+    try {
+        const response = await fetch(`${API_BASE}?action=get_data&token=${encodeURIComponent(token)}`);
+        const result = await response.json();
+        
+        if (result && result.status === 200 && result.data) {
+            let bookmarks = result.data.bookmarks || {};
+            let history = result.data.history || {};
+            
+            // Defensive check
+            if (Array.isArray(bookmarks)) bookmarks = {};
+            if (Array.isArray(history)) history = {};
+            
+            localStorage.setItem('bookmarks', JSON.stringify(bookmarks));
+            localStorage.setItem('reading_history', JSON.stringify(history));
+            console.log('User data refreshed from server');
+        }
+    } catch (e) {
+        console.error('Failed to refresh user data:', e);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     fetchBanners();
     
@@ -39,36 +64,9 @@ document.addEventListener('DOMContentLoaded', () => {
     setupNavbar();
     setupInfiniteScroll();
     
-    // Auto-sync if logged in
-    if (localStorage.getItem('user_token')) {
-        setInterval(syncDataToServer, 60000); // Every minute
-        syncDataToServer(); // Initial sync
-    }
+    // Initial data refresh from server
+    refreshUserData();
 });
-
-async function syncDataToServer() {
-    const token = localStorage.getItem('user_token');
-    if (!token) return;
-    
-    let bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '{}');
-    let history = JSON.parse(localStorage.getItem('reading_history') || '{}');
-    
-    // Defensive check: ensure they are objects, not arrays
-    if (Array.isArray(bookmarks)) bookmarks = {};
-    if (Array.isArray(history)) history = {};
-    
-    try {
-        const response = await fetch(`${API_BASE}?action=sync&token=${encodeURIComponent(token)}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ bookmarks, history })
-        });
-        const result = await response.json();
-        console.log('Sync result:', result);
-    } catch (e) {
-        console.error('Sync failed', e);
-    }
-}
 
 function saveAppState() {
     const state = {
@@ -347,7 +345,8 @@ function setupNavbar() {
     }
 }
 
-function viewBookmarks() {
+async function viewBookmarks() {
+    await refreshUserData();
     document.querySelector('.banner-section').style.display = 'none';
     const gridTitle = document.querySelector('.latest-section .section-title');
     gridTitle.textContent = 'My Bookmarks';

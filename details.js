@@ -4,27 +4,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
 const API_BASE = 'https://abahcode.com/api.php';
 
-async function syncDataToServer() {
+async function apiPost(action, data) {
     const token = localStorage.getItem('user_token');
-    if (!token) return;
-    
-    let bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '{}');
-    let history = JSON.parse(localStorage.getItem('reading_history') || '{}');
-    
-    // Defensive check
-    if (Array.isArray(bookmarks)) bookmarks = {};
-    if (Array.isArray(history)) history = {};
-    
+    if (!token) return null;
     try {
-        const response = await fetch(`${API_BASE}?action=sync&token=${encodeURIComponent(token)}`, {
+        const response = await fetch(`${API_BASE}?action=${action}&token=${encodeURIComponent(token)}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ bookmarks, history })
+            body: JSON.stringify(data)
         });
-        const result = await response.json();
-        console.log('Sync result:', result);
+        return await response.json();
     } catch (e) {
-        console.error('Sync failed', e);
+        console.error(`API Error (${action}):`, e);
+        return null;
     }
 }
 
@@ -226,28 +218,52 @@ function updateBookmarkUI() {
     btn.classList.toggle('active', isBookmarked);
 }
 
-function toggleBookmark() {
+async function toggleBookmark() {
+    const btn = document.getElementById('bookmark-btn');
     if (!localStorage.getItem('user_token')) {
         alert('Silakan login untuk menyimpan bookmark.');
         window.location.href = 'login.html';
         return;
     }
+
     const bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '{}');
-    if (bookmarks[currentSlug]) {
-        delete bookmarks[currentSlug];
+    const isBookmarked = !!bookmarks[currentSlug];
+    
+    // Add loading state
+    const originalContent = btn.innerHTML;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Processing...`;
+    btn.disabled = true;
+
+    let result;
+    if (isBookmarked) {
+        result = await apiPost('remove_bookmark', { slug: currentSlug });
     } else {
-        bookmarks[currentSlug] = {
+        result = await apiPost('add_bookmark', {
             slug: currentSlug,
             title: currentSeries.title,
             cover: currentSeries.coverImage,
             format: currentSeries.format
-        };
+        });
     }
-    localStorage.setItem('bookmarks', JSON.stringify(bookmarks));
-    updateBookmarkUI();
-    
-    // Proactive sync
-    syncDataToServer();
+
+    if (result && result.status === 200) {
+        if (isBookmarked) {
+            delete bookmarks[currentSlug];
+        } else {
+            bookmarks[currentSlug] = {
+                slug: currentSlug,
+                title: currentSeries.title,
+                cover: currentSeries.coverImage,
+                format: currentSeries.format
+            };
+        }
+        localStorage.setItem('bookmarks', JSON.stringify(bookmarks));
+        updateBookmarkUI();
+    } else {
+        alert('Gagal memperbarui bookmark. Silakan coba lagi.');
+        btn.innerHTML = originalContent;
+    }
+    btn.disabled = false;
 }
 
 function renderChapters(chapters) {

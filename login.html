@@ -102,12 +102,19 @@
                 if (data.status === 200) {
                     if (isLogin) {
                         localStorage.setItem('user_token', data.token);
-                        localStorage.setItem('username', username);
-                        // Merge local data with server data if needed
-                        if (data.data) {
-                            localStorage.setItem('bookmarks', JSON.stringify(data.data.bookmarks || {}));
-                            localStorage.setItem('reading_history', JSON.stringify(data.data.history || {}));
-                        }
+                        localStorage.setItem('user_profile', JSON.stringify({ username: username }));
+                        
+                        // Store initial data from server
+                        let bookmarks = data.data?.bookmarks || {};
+                        let history = data.data?.history || {};
+                        
+                        // Force objects
+                        if (Array.isArray(bookmarks)) bookmarks = {};
+                        if (Array.isArray(history)) history = {};
+                        
+                        localStorage.setItem('bookmarks', JSON.stringify(bookmarks));
+                        localStorage.setItem('reading_history', JSON.stringify(history));
+                        
                         window.location.href = 'index.html';
                     } else {
                         alert('Pendaftaran berhasil! Silakan login.');

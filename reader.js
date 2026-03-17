@@ -12,27 +12,19 @@ const API_OPTIONS = {
 
 const API_BASE = 'https://abahcode.com/api.php';
 
-async function syncDataToServer() {
+async function apiPost(action, data) {
     const token = localStorage.getItem('user_token');
-    if (!token) return;
-    
-    let bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '{}');
-    let history = JSON.parse(localStorage.getItem('reading_history') || '{}');
-    
-    // Defensive check
-    if (Array.isArray(bookmarks)) bookmarks = {};
-    if (Array.isArray(history)) history = {};
-    
+    if (!token) return null;
     try {
-        const response = await fetch(`${API_BASE}?action=sync&token=${encodeURIComponent(token)}`, {
+        const response = await fetch(`${API_BASE}?action=${action}&token=${encodeURIComponent(token)}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ bookmarks, history })
+            body: JSON.stringify(data)
         });
-        const result = await response.json();
-        console.log('Sync result:', result);
+        return await response.json();
     } catch (e) {
-        console.error('Sync failed', e);
+        console.error(`API Error (${action}):`, e);
+        return null;
     }
 }
 
@@ -190,7 +182,7 @@ async function loadChapter(index) {
         const history = JSON.parse(localStorage.getItem('reading_history') || '{}');
         history[currentSlug] = currentChapterIndex;
         localStorage.setItem('reading_history', JSON.stringify(history));
-        syncDataToServer();
+        apiPost('update_history', { slug: currentSlug, last_chapter: currentChapterIndex });
     } catch(e) {}
     
     const container = document.getElementById('image-container');

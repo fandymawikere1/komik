@@ -124,55 +124,100 @@ switch ($action) {
         }
         break;
 
-    case 'sync':
+    case 'add_bookmark':
         $token = $_GET['token'] ?? '';
         $username = base64_decode($token);
-        $bookmarks = $input['bookmarks'] ?? null;
-        $history = $input['history'] ?? null;
-        
-        if (!$token || !$username) {
-            echo json_encode(['status' => 401, 'message' => 'Unauthorized: Invalid or missing token']);
-            exit;
+        if (!$username) { echo json_encode(['status' => 401, 'message' => 'Unauthorized']); exit; }
+
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ?");
+        $stmt->execute([$username]);
+        $user = $stmt->fetch();
+        if (!$user) { echo json_encode(['status' => 401, 'message' => 'User not found']); exit; }
+
+        try {
+            $stmt = $pdo->prepare("INSERT INTO bookmarks (user_id, slug, title, cover, format) 
+                                 VALUES (?, ?, ?, ?, ?) 
+                                 ON DUPLICATE KEY UPDATE title=VALUES(title), cover=VALUES(cover), format=VALUES(format)");
+            $stmt->execute([$user['id'], $input['slug'], $input['title'], $input['cover'], $input['format']]);
+            echo json_encode(['status' => 200, 'message' => 'Bookmark added']);
+        } catch (PDOException $e) {
+            echo json_encode(['status' => 500, 'message' => 'Failed to add bookmark: ' . $e->getMessage()]);
         }
+        break;
+
+    case 'remove_bookmark':
+        $token = $_GET['token'] ?? '';
+        $username = base64_decode($token);
+        if (!$username) { echo json_encode(['status' => 401, 'message' => 'Unauthorized']); exit; }
 
         $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ?");
         $stmt->execute([$username]);
         $user = $stmt->fetch();
 
-        if (!$user) {
-            echo json_encode(['status' => 401, 'message' => 'Unauthorized: User not found (' . $username . ')']);
-            exit;
+        try {
+            $stmt = $pdo->prepare("DELETE FROM bookmarks WHERE user_id = ? AND slug = ?");
+            $stmt->execute([$user['id'], $input['slug']]);
+            echo json_encode(['status' => 200, 'message' => 'Bookmark removed']);
+        } catch (PDOException $e) {
+            echo json_encode(['status' => 500, 'message' => 'Failed to remove bookmark']);
         }
+        break;
 
-        $userId = $user['id'];
+    case 'update_history':
+        $token = $_GET['token'] ?? '';
+        $username = base64_decode($token);
+        if (!$username) { echo json_encode(['status' => 401, 'message' => 'Unauthorized']); exit; }
+
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ?");
+        $stmt->execute([$username]);
+        $user = $stmt->fetch();
 
         try {
-            // Sync Bookmarks
-            if ($bookmarks !== null && is_array($bookmarks)) {
-                foreach ($bookmarks as $slug => $data) {
-                    if (empty($slug)) continue;
-                    $stmt = $pdo->prepare("INSERT INTO bookmarks (user_id, slug, title, cover, format) 
-                                         VALUES (?, ?, ?, ?, ?) 
-                                         ON DUPLICATE KEY UPDATE title=VALUES(title), cover=VALUES(cover), format=VALUES(format)");
-                    $stmt->execute([$userId, $slug, $data['title'] ?? '', $data['cover'] ?? '', $data['format'] ?? '']);
-                }
-            }
-
-            // Sync History
-            if ($history !== null && is_array($history)) {
-                foreach ($history as $slug => $lastChapter) {
-                    if (empty($slug)) continue;
-                    $stmt = $pdo->prepare("INSERT INTO history (user_id, slug, last_chapter) 
-                                         VALUES (?, ?, ?) 
-                                         ON DUPLICATE KEY UPDATE last_chapter=VALUES(last_chapter)");
-                    $stmt->execute([$userId, $slug, (string)$lastChapter]);
-                }
-            }
-            
-            echo json_encode(['status' => 200, 'message' => 'Sync successful']);
+            $stmt = $pdo->prepare("INSERT INTO history (user_id, slug, last_chapter) 
+                                 VALUES (?, ?, ?) 
+                                 ON DUPLICATE KEY UPDATE last_chapter=VALUES(last_chapter)");
+            $stmt->execute([$user['id'], $input['slug'], $input['last_chapter']]);
+            echo json_encode(['status' => 200, 'message' => 'History updated']);
         } catch (PDOException $e) {
-            echo json_encode(['status' => 500, 'message' => 'Sync failed: ' . $e->getMessage()]);
+            echo json_encode(['status' => 500, 'message' => 'Failed to update history']);
         }
+        break;
+
+    case 'get_data':
+        $token = $_GET['token'] ?? '';
+        $username = base64_decode($token);
+        if (!$username) { echo json_encode(['status' => 401, 'message' => 'Unauthorized']); exit; }
+
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ?");
+        $stmt->execute([$username]);
+        $user = $stmt->fetch();
+        if (!$user) { echo json_encode(['status' => 401, 'message' => 'User not found']); exit; }
+
+        // Fetch Bookmarks
+        $stmt = $pdo->prepare("SELECT slug, title, cover, format FROM bookmarks WHERE user_id = ?");
+        $stmt->execute([$user['id']]);
+        $bookmarksRaw = $stmt->fetchAll();
+        $bookmarks = [];
+        foreach ($bookmarksRaw as $b) {
+            $bookmarks[$b['slug']] = $b;
+        }
+
+        // Fetch History
+        $stmt = $pdo->prepare("SELECT slug, last_chapter FROM history WHERE user_id = ?");
+        $stmt->execute([$user['id']]);
+        $historyRaw = $stmt->fetchAll();
+        $history = [];
+        foreach ($historyRaw as $h) {
+            $history[$h['slug']] = $h['last_chapter'];
+        }
+
+        echo json_encode([
+            'status' => 200,
+            'data' => [
+                'bookmarks' => (object)$bookmarks,
+                'history' => (object)$history
+            ]
+        ]);
         break;
 
     default:
