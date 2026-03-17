@@ -314,18 +314,35 @@ function setupNavbar() {
     // Add User Profile / Login button to navbar if not exists
     const navLinks = document.querySelector('.nav-links');
     if (!document.getElementById('nav-user')) {
-        const username = localStorage.getItem('username');
+        const userProfile = JSON.parse(localStorage.getItem('user_profile') || 'null');
+        const token = localStorage.getItem('user_token');
+        let username = userProfile ? userProfile.username : null;
+        
+        // Robust recovery: if profile is missing but token exists, decode it
+        if (!username && token) {
+            try {
+                username = atob(token);
+                // Also save it back for future use
+                localStorage.setItem('user_profile', JSON.stringify({ username }));
+            } catch (e) {
+                console.error('Failed to decode token for username', e);
+            }
+        }
+        
         const userLink = document.createElement('a');
         userLink.id = 'nav-user';
         userLink.href = username ? '#' : 'login.html';
         userLink.innerHTML = username ? 
-            `<i class="fa-solid fa-user nav-icon"></i><span class="nav-text">${username}</span>` : 
+            `<i class="fa-solid fa-user nav-icon"></i><span class="nav-text" style="max-width: 100px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${username}</span>` : 
             `<i class="fa-solid fa-right-to-bracket nav-icon"></i><span class="nav-text">Login</span>`;
+        
         if (username) {
             userLink.onclick = () => {
                 if (confirm('Logout?')) {
                     localStorage.removeItem('user_token');
-                    localStorage.removeItem('username');
+                    localStorage.removeItem('user_profile');
+                    localStorage.removeItem('bookmarks');
+                    localStorage.removeItem('reading_history');
                     window.location.reload();
                 }
             };
