@@ -41,6 +41,22 @@ async function refreshUserData() {
     }
 }
 
+async function apiPost(action, data) {
+    const token = localStorage.getItem('user_token');
+    if (!token) return null;
+    try {
+        const response = await fetch(`${API_BASE}?action=${action}&token=${encodeURIComponent(token)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        return await response.json();
+    } catch (e) {
+        console.error(`API Error (${action}):`, e);
+        return null;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     fetchBanners();
     
@@ -59,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchParam = urlParams.get('search');
     
     if (genreParam) {
-        currentGenre = genreParam;
+        currentGenres = [genreParam];
         handleGenreSearch(genreParam);
     } else if (searchParam) {
         currentQuery = searchParam;
@@ -80,20 +96,28 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function saveAppState() {
-    const state = {
-        currentType,
-        currentQuery,
-        currentGenre,
-        currentFormat,
-        currentPage,
-        allMangaData,
-        scrollPos: window.scrollY,
-        title: document.querySelector('.latest-section .section-title').textContent,
-        bannerDisplay: document.querySelector('.banner-section').style.display,
-        activeNavLinkId: document.querySelector('.nav-links a.active')?.id
-    };
-    sessionStorage.setItem('saved_app_state', JSON.stringify(state));
-    sessionStorage.setItem('should_restore_state', 'true');
+    try {
+        const titleEl = document.querySelector('.latest-section .section-title');
+        const bannerEl = document.querySelector('.banner-section');
+        const activeLink = document.querySelector('.nav-links a.active');
+        
+        const state = {
+            currentType,
+            currentQuery,
+            currentGenres,
+            currentFormat,
+            currentPage,
+            allMangaData,
+            scrollPos: window.scrollY,
+            title: titleEl ? titleEl.textContent : 'Series',
+            bannerDisplay: bannerEl ? bannerEl.style.display : 'block',
+            activeNavLinkId: activeLink ? activeLink.id : null
+        };
+        sessionStorage.setItem('saved_app_state', JSON.stringify(state));
+        sessionStorage.setItem('should_restore_state', 'true');
+    } catch (e) {
+        console.error('Failed to save app state:', e);
+    }
 }
 
 function restoreAppState() {
@@ -103,7 +127,7 @@ function restoreAppState() {
     const state = JSON.parse(saved);
     currentType = state.currentType;
     currentQuery = state.currentQuery;
-    currentGenre = state.currentGenre;
+    currentGenres = state.currentGenres || [];
     currentFormat = state.currentFormat;
     currentPage = state.currentPage;
     allMangaData = state.allMangaData || [];
@@ -198,13 +222,6 @@ async function handleGenreSearch(genreName) {
 async function handleFormatSearch(formatName) {
     currentFormat = formatName.toLowerCase();
     currentType = 'format';
-    currentPage = 1;
-    applyFilters();
-}
-
-async function handleFormatSearch(formatName) {
-    currentType = 'format';
-    currentFormat = formatName.toLowerCase();
     currentPage = 1;
     applyFilters();
 }
@@ -450,7 +467,12 @@ async function handleImageError(img, slug) {
                 if (token) {
                     const title = bookmarks[slug].title;
                     const format = bookmarks[slug].format;
-                    fetch(`${API_BASE}?action=add_bookmark&token=${encodeURIComponent(token)}&slug=${encodeURIComponent(slug)}&title=${encodeURIComponent(title)}&cover=${encodeURIComponent(newCover)}&format=${encodeURIComponent(format)}`);
+                    apiPost('add_bookmark', {
+                        slug: slug,
+                        title: title,
+                        cover: newCover,
+                        format: format
+                    });
                 }
             }
         }
@@ -604,20 +626,7 @@ async function viewBookmarks() {
 
 
 // --- Banner Logic ---
-async function fetchBanners() {
-    try {
-        const response = await fetch(BANNER_API, API_OPTIONS);
-        const json = await response.json();
-        if (json.status === 200 && json.data) {
-            allBanners = json.data;
-            renderBanners(allBanners);
-        } else {
-            showError('banner-track', 'Failed to load trending series.');
-        }
-    } catch (error) {
-        showError('banner-track', 'Network error.');
-    }
-}
+
 
 function renderBanners(seriesList) {
     const track = document.getElementById('banner-track');
