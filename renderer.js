@@ -495,11 +495,21 @@ async function viewBookmarks() {
     
     // Hide filters explicitly here as well, just in case
     document.getElementById('filter-section').style.display = 'none';
-    document.getElementById('filter-fab').classList.remove('visible');
 
     currentPage = 1;
     
-    const bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '{}');
+    const bookmarksRaw = localStorage.getItem('bookmarks');
+    let bookmarks = {};
+    try {
+        bookmarks = JSON.parse(bookmarksRaw || '{}');
+        // Handle unexpected primitive or null types
+        if (!bookmarks || typeof bookmarks !== 'object' || Array.isArray(bookmarks)) {
+            bookmarks = {};
+        }
+    } catch (e) {
+        bookmarks = {};
+    }
+    
     const list = Object.values(bookmarks);
     
     if (list.length === 0) {
