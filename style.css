@@ -181,30 +181,12 @@ h1, h2, h3, h4, h5, h6, .logo-text {
     color: var(--text-primary);
 }
 
-/* Filter FAB (Mobile) */
+/* Filter FAB (Mobile) - REMOVED */
 .filter-fab {
-    display: none;
-    position: fixed;
-    bottom: 85px;
-    right: 20px;
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: var(--accent-color);
-    color: white;
-    border: none;
-    font-size: 1.5rem;
-    box-shadow: 0 4px 15px var(--accent-glow);
-    z-index: 1002;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: none !important;
 }
 
-.filter-fab:active {
-    transform: scale(0.9);
-}
-
-/* Modal Overlay */
+/* Modal Overlay (Used by details, keep general class but hide filter specific things if any) */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -230,19 +212,19 @@ h1, h2, h3, h4, h5, h6, .logo-text {
 .modal-content {
     background: var(--surface-color);
     width: 90%;
-    max-width: 500px;
-    max-height: 85vh;
-    border-radius: 24px;
+    max-width: 800px;
+    max-height: 90vh;
+    border-radius: 16px;
     border: 1px solid var(--glass-border);
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    transform: scale(0.9);
-    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transform: translateY(20px) scale(0.95);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 .modal-overlay.active .modal-content {
-    transform: scale(1);
+    transform: translateY(0) scale(1);
 }
 
 .modal-header {
@@ -817,13 +799,44 @@ h1, h2, h3, h4, h5, h6, .logo-text {
     }
 
     .filter-section {
-        display: none !important; /* Hide standard bar on mobile */
+        position: fixed;
+        top: 99px; /* search-container-top + mobile-status-filler */
+        left: 0;
+        width: 100%;
+        padding: 8px;
+        z-index: 999;
+        background: var(--bg-color);
+        border-bottom: 1px solid var(--glass-border);
+        display: none; /* Controlled by JS via inline style.display if needed, but flex by default when visible */
+        justify-content: flex-start;
+        overflow-x: auto;
+        white-space: nowrap;
+        scrollbar-width: none;
+    }
+
+    .filter-section::-webkit-scrollbar {
+        display: none;
+    }
+
+    .filter-bar {
+        background: transparent;
+        border: none;
+        padding: 0;
+        flex-wrap: nowrap;
+        gap: 0.5rem;
+    }
+
+    .filter-bar select {
+        font-size: 0.75rem;
+        padding: 4px 8px;
+        white-space: nowrap;
+        background: var(--surface-elevated);
+        border: 1px solid var(--glass-border);
+        border-radius: 8px;
     }
 
     .filter-fab.visible {
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        display: none !important;
     }
 
     .container {

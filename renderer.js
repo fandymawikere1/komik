@@ -243,10 +243,8 @@ function applyFilters() {
     
     if (currentType === 'bookmark' || currentType === 'latest') {
         document.getElementById('filter-section').style.display = 'none';
-        document.getElementById('filter-fab').classList.remove('visible');
     } else {
         document.getElementById('filter-section').style.display = 'flex';
-        document.getElementById('filter-fab').classList.add('visible');
     }
 
     if (currentType === 'bookmark') {
@@ -292,7 +290,7 @@ function getFilterParams() {
 }
 
 function setupFilters() {
-    // Desktop Selects
+    // Desktop Selects (Used on both desktop and mobile now)
     const ids = ['filter-status', 'filter-sort', 'filter-order', 'filter-genres'];
     ids.forEach(id => {
         const el = document.getElementById(id);
@@ -313,86 +311,13 @@ function setupFilters() {
                 }
             }
             
-            syncModalWithDesktop();
             currentPage = 1;
             applyFilters();
         });
     });
-
-    // Mobile Modal Logic
-    const fab = document.getElementById('filter-fab');
-    const modal = document.getElementById('filter-modal-overlay');
-    const closeBtn = document.getElementById('close-filter-modal');
-    const applyBtn = document.getElementById('modal-apply-filters');
-
-    if (fab) {
-        fab.addEventListener('click', () => {
-            modal.classList.add('active');
-            syncModalWithDesktop();
-        });
-    }
-    
-    if (closeBtn) {
-        closeBtn.onclick = () => modal.classList.remove('active');
-    }
-    
-    window.addEventListener('click', (e) => {
-        if (e.target === modal) modal.classList.remove('active');
-    });
-
-    // Chip handling
-    document.querySelectorAll('.chip').forEach(chip => {
-        chip.addEventListener('click', function() {
-            const group = this.parentElement;
-            if (!group) return;
-            group.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-            this.classList.add('active');
-            
-            const val = this.dataset.value;
-            const groupId = group.id;
-            if (groupId === 'chips-status') currentStatus = val;
-            if (groupId === 'chips-sort') currentSort = val;
-            if (groupId === 'chips-order') currentSortOrder = val;
-        });
-    });
-
-    if (applyBtn) {
-        applyBtn.onclick = () => {
-            syncDesktopWithModal();
-            modal.classList.remove('active');
-            currentPage = 1;
-            applyFilters();
-        };
-    }
 }
 
-function syncModalWithDesktop() {
-    // Sync Status Chips
-    document.querySelectorAll('#chips-status .chip').forEach(c => {
-        c.classList.toggle('active', c.dataset.value === currentStatus);
-    });
-    // Sync Sort Chips
-    document.querySelectorAll('#chips-sort .chip').forEach(c => {
-        c.classList.toggle('active', c.dataset.value === currentSort);
-    });
-    // Sync Order Chips
-    document.querySelectorAll('#chips-order .chip').forEach(c => {
-        c.classList.toggle('active', c.dataset.value === currentSortOrder);
-    });
-    // Sync Genre Chips
-    document.querySelectorAll('#modal-genre-grid .chip').forEach(c => {
-        c.classList.toggle('active', currentGenres.includes(c.dataset.value));
-    });
-}
 
-function syncDesktopWithModal() {
-    const statusSelect = document.getElementById('filter-status');
-    const sortSelect = document.getElementById('filter-sort');
-    const orderSelect = document.getElementById('filter-order');
-    if (statusSelect) statusSelect.value = currentStatus;
-    if (sortSelect) sortSelect.value = currentSort;
-    if (orderSelect) orderSelect.value = currentSortOrder;
-}
 
 async function fetchGenres() {
     const GENRE_API = 'https://be.komikcast.cc/genres';
@@ -401,42 +326,16 @@ async function fetchGenres() {
         const json = await response.json();
         if (json.status === 200 && json.data) {
             const select = document.getElementById('filter-genres');
-            const grid = document.getElementById('modal-genre-grid');
-            
-            if (select) select.innerHTML = '<option value="">Genre: All</option>';
-            if (grid) grid.innerHTML = '';
-
-            json.data.forEach(genre => {
-                const name = genre.data.name;
-                
-                // For Desktop Select
-                if (select) {
+            if (select) {
+                select.innerHTML = '<option value="">Genre: All</option>';
+                json.data.forEach(genre => {
+                    const name = genre.data.name;
                     const opt = document.createElement('option');
                     opt.value = name; 
                     opt.textContent = name;
                     select.appendChild(opt);
-                }
-
-                // For Mobile Grid
-                if (grid) {
-                    const btn = document.createElement('button');
-                    btn.className = 'chip';
-                    btn.textContent = name;
-                    btn.dataset.value = name;
-                    btn.onclick = () => {
-                        const idx = currentGenres.indexOf(name);
-                        if (idx > -1) {
-                            currentGenres.splice(idx, 1);
-                            btn.classList.remove('active');
-                        } else {
-                            currentGenres.push(name);
-                            btn.classList.add('active');
-                        }
-                        currentType = currentGenres.length > 0 ? 'genre' : 'latest';
-                    };
-                    grid.appendChild(btn);
-                }
-            });
+                });
+            }
         }
     } catch (e) {
         console.error('Error fetching genres:', e);
