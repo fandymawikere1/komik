@@ -351,8 +351,10 @@ async function handleImageError(img, slug) {
         const detailUrl = `https://be.komikcast.cc/series/${slug}`;
         const response = await fetch(detailUrl);
         const json = await response.json();
-        if (json.status === 200 && json.data && json.data.coverImage) {
-            const newCover = json.data.coverImage;
+        
+        // The API structure is { status: 200, data: { data: { coverImage: "..." } } }
+        if (json.status === 200 && json.data && json.data.data && json.data.data.coverImage) {
+            const newCover = json.data.data.coverImage;
             img.src = newCover;
             
             // Update local storage bookmark
@@ -361,7 +363,7 @@ async function handleImageError(img, slug) {
                 bookmarks[slug].cover = newCover;
                 localStorage.setItem('bookmarks', JSON.stringify(bookmarks));
                 
-                // Optional: update on server
+                // Update on server
                 const token = localStorage.getItem('user_token');
                 if (token) {
                     const title = bookmarks[slug].title;

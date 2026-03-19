@@ -28,6 +28,7 @@ async function apiPost(action, data) {
     }
 }
 
+let currentSlug = '';
 let currentTitle = '';
 let currentFormat = '';
 let allChapters = [];

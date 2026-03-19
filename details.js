@@ -155,6 +155,7 @@ function renderDetails(data) {
     // Fill cover
     const coverImg = document.getElementById('detail-cover');
     coverImg.src = data.coverImage;
+    coverImg.onerror = () => handleImageError(coverImg, currentSlug);
     
     document.getElementById('detail-title').textContent = data.title;
     document.getElementById('detail-native').textContent = data.nativeTitle || '';
@@ -330,6 +331,45 @@ function updateReadingStatus() {
         btn.onclick = () => {
              window.location.href = `reader.html?slug=${encodeURIComponent(currentSlug)}&title=${encodeURIComponent(currentSeries.title)}&chapter=${first.data.index}&format=${encodeURIComponent(currentSeries.format)}`;
         };
+    }
+}
+
+async function handleImageError(img, slug) {
+    if (img.dataset.repaired) return;
+    img.dataset.repaired = 'true';
+    
+    console.log(`Repairing cover for ${slug}`);
+    try {
+        const detailUrl = `https://be.komikcast.cc/series/${slug}`;
+        const response = await fetch(detailUrl);
+        const json = await response.json();
+        
+        if (json.status === 200 && json.data && json.data.data && json.data.data.coverImage) {
+            const newCover = json.data.data.coverImage;
+            img.src = newCover;
+            
+            // Update local storage bookmark
+            const bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '{}');
+            if (bookmarks[slug]) {
+                bookmarks[slug].cover = newCover;
+                localStorage.setItem('bookmarks', JSON.stringify(bookmarks));
+                
+                // Update on server
+                const token = localStorage.getItem('user_token');
+                if (token) {
+                    const title = bookmarks[slug].title;
+                    const format = bookmarks[slug].format;
+                    apiPost('add_bookmark', {
+                        slug: slug,
+                        title: title,
+                        cover: newCover,
+                        format: format
+                    });
+                }
+            }
+        }
+    } catch (e) {
+        console.error('Failed to repair cover image', e);
     }
 }
 
